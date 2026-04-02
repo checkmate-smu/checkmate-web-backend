@@ -1,0 +1,55 @@
+# ===========================
+# Build Output
+# ===========================
+build/
+out/
+bin/
+.gradle/
+*.class
+*.jar
+!gradle-wrapper.jar
+*.war
+*.ear
+
+# ===========================
+# IDE — IntelliJ IDEA
+# ===========================
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# ===========================
+# IDE — Eclipse
+# ===========================
+.project
+.classpath
+.settings/
+*.launch
+
+# ===========================
+# Environment Variables
+# ===========================
+.env
+.env.*
+!.env.example
+
+# ===========================
+# OS
+# ===========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================
+# Logs
+# ===========================
+*.log
+logs/
+
+# ===========================
+# Claude / Plans / Context (팀 내부 전용)
+# ===========================
+.claude/
+.plans/
+context/
