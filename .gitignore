@@ -33,6 +33,8 @@ bin/
 .env
 .env.*
 !.env.example
+application-local.yml
+**/application-local.yml
 
 # ===========================
 # Gradle Wrapper (추적 필요)
