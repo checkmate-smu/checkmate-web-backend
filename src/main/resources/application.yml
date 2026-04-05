@@ -3,9 +3,9 @@ spring:
     name: checkmate-web-backend
 
   datasource:
-    url: jdbc:postgresql://${SUPABASE_HOST}:${SUPABASE_PORT:5432}/${SUPABASE_DB}
-    username: ${SUPABASE_USER}
-    password: ${SUPABASE_PASSWORD}
+    url: jdbc:postgresql://${SUPABASE_HOST:localhost}:${SUPABASE_PORT:5432}/${SUPABASE_DB:postgres}
+    username: ${SUPABASE_USER:postgres}
+    password: ${SUPABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
 
   jpa:
