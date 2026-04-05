@@ -66,9 +66,15 @@
 
 ---
 
+## Git Workflow
+
+- `main` (Production): 최종 배포 브랜치 — 직접 push 금지
+- `dev` (Staging): 개발 통합 브랜치 — PR은 이 브랜치로
+- `feat/{N}-{name}`: 기능 단위 브랜치 (예: `feat/1-article-extract`)
+
 ## PR 템플릿
 
-> **base 브랜치: 본인 이름 브랜치 (main 아님!)**
+> **base 브랜치: `dev` (main 아님!)**
 
 ```markdown
 # ☝️Issue Number
@@ -94,7 +100,7 @@ Issue 생성 → 브랜치 생성 → 개발 → PR → 코드리뷰 → 머지 
 1. **Issue 생성**: 작업할 내용을 이슈로 등록
 2. **브랜치 생성**: `타입/#이슈번호-작업내용` 형식으로 생성
 3. **개발**: 기능 구현
-4. **PR**: 본인 이름 브랜치를 base로 PR 생성
+4. **PR**: `dev` 브랜치를 base로 PR 생성
 5. **코드리뷰**: 팀원 리뷰 후 승인
 6. **머지**: 승인 완료 후 머지
 7. **Issue 닫기**: 머지 후 해당 이슈 close
