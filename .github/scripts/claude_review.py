@@ -85,12 +85,12 @@ def main():
 - 필수는 아니지만 더 좋아질 수 있는 부분
 
 ---
-*🤖 Claude AI 자동 리뷰 (claude-haiku-4-5)*"""
+*🤖 Claude AI 자동 리뷰 (claude-sonnet-4-6)*"""
 
     client = anthropic.Anthropic(api_key=api_key)
 
     message = client.messages.create(
-        model="claude-haiku-4-5",
+        model="claude-sonnet-4-6",
         max_tokens=2048,
         messages=[{"role": "user", "content": prompt}],
     )
