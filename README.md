@@ -19,6 +19,60 @@
 
 ---
 
+## 시작하기
+
+### 요구사항
+
+- Java 17+
+- IntelliJ IDEA (권장) 또는 VS Code + Extension Pack for Java
+
+### 로컬 실행
+
+```bash
+# 1. 레포 클론
+git clone https://github.com/checkmate-smu/checkmate-web-backend.git
+cd checkmate-web-backend
+
+# 2. 로컬 DB 설정 파일 생성 (아래 "환경 설정" 참고)
+# src/main/resources/application-local.yml 생성
+
+# 3. 실행
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+서버가 `http://localhost:8080`에서 뜨면 성공입니다.
+
+### 환경 설정
+
+> 상세 가이드: [docs/guides/backend-setup-guide.md](./docs/guides/backend-setup-guide.md)
+
+**핵심 3단계:**
+1. `src/main/resources/application-local.yml` 파일 생성
+2. Supabase 대시보드에서 연결 정보 복사
+3. `./gradlew bootRun --args='--spring.profiles.active=local'`
+
+`.env.example` 파일에 전체 변수 목록과 안내가 있습니다.
+
+---
+
+## 프로젝트 구조
+
+```
+src/main/java/com/checkmate/web/
+├── controller/     # REST API 엔드포인트
+├── service/        # 비즈니스 로직
+├── repository/     # JPA Repository
+├── entity/         # DB 테이블 매핑 (JPA Entity)
+│   └── enums/      # Enum 타입 (MemberRole, SessionStatus 등)
+├── dto/            # 요청/응답 DTO
+├── config/         # 설정 (Security, JPA Auditing 등)
+└── exception/      # 전역 예외 처리
+```
+
+> Entity 작성 가이드: [docs/guides/entity-mapping-guide.md](../../docs/guides/entity-mapping-guide.md)
+
+---
+
 ## 커밋 메시지 컨벤션
 
 ### Gitmoji + 태그 방식
