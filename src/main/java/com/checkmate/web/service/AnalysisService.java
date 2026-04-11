@@ -27,8 +27,12 @@ public class AnalysisService {
       // 3. Article 저장 + 상태 업데이트 (트랜잭션 — 별도 빈)
       return transactionService.persistArticleAndUpdateStatus(sessionId, request.url(), extracted);
     } catch (RuntimeException ex) {
-      // 4. 실패 시 세션 상태 → FAILED
-      transactionService.markFailed(sessionId);
+      // 4. 실패 시 세션 상태 → FAILED (markFailed 실패 시 원본 예외 보존)
+      try {
+        transactionService.markFailed(sessionId);
+      } catch (RuntimeException markFailedEx) {
+        ex.addSuppressed(markFailedEx);
+      }
       throw ex;
     }
   }
