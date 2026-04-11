@@ -32,7 +32,7 @@ jobs:
             비즈니스 로직 결함, 성능 문제(N+1 쿼리 등), 보안 취약점, 설계 개선에 집중해.
             한국어로 리뷰해.
             리뷰 결과를 반드시 PR 코멘트로 남겨. 문제가 없으면 "✅ 리뷰 완료 — 특이사항 없음"이라고 코멘트해.
-          claude_args: "--max-turns 10"
+          claude_args: "--max-turns 20"
 
   # @claude 멘션 시 대화형 응답
   interactive:
@@ -52,4 +52,4 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: "--max-turns 10"
+          claude_args: "--max-turns 20"
