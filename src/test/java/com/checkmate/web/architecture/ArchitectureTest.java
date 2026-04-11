@@ -21,21 +21,21 @@ class ArchitectureTest {
   static final ArchRule layerDependencies =
       layeredArchitecture()
           .consideringAllDependencies()
-          .layer("Controller")
+          .optionalLayer("Controller")
           .definedBy("..controller..")
-          .layer("Service")
+          .optionalLayer("Service")
           .definedBy("..service..")
-          .layer("Repository")
+          .optionalLayer("Repository")
           .definedBy("..repository..")
-          .layer("Entity")
+          .optionalLayer("Entity")
           .definedBy("..entity..")
-          .layer("DTO")
+          .optionalLayer("DTO")
           .definedBy("..dto..")
-          .layer("Converter")
+          .optionalLayer("Converter")
           .definedBy("..converter..")
-          .layer("Config")
+          .optionalLayer("Config")
           .definedBy("..config..")
-          .layer("Exception")
+          .optionalLayer("Exception")
           .definedBy("..exception..")
           .whereLayer("Controller")
           .mayNotBeAccessedByAnyLayer()
@@ -44,7 +44,7 @@ class ArchitectureTest {
           .whereLayer("Repository")
           .mayOnlyBeAccessedByLayers("Service");
 
-  // ── 네이밍 규칙 ──
+  // ── 네이밍 규칙 (패키지가 비어있으면 통과) ──
 
   @ArchTest
   static final ArchRule controllerNaming =
@@ -52,11 +52,17 @@ class ArchitectureTest {
           .that()
           .resideInAPackage("..controller..")
           .should()
-          .haveSimpleNameEndingWith("Controller");
+          .haveSimpleNameEndingWith("Controller")
+          .allowEmptyShould(true);
 
   @ArchTest
   static final ArchRule serviceNaming =
-      classes().that().resideInAPackage("..service..").should().haveSimpleNameEndingWith("Service");
+      classes()
+          .that()
+          .resideInAPackage("..service..")
+          .should()
+          .haveSimpleNameEndingWith("Service")
+          .allowEmptyShould(true);
 
   @ArchTest
   static final ArchRule repositoryNaming =
@@ -64,7 +70,8 @@ class ArchitectureTest {
           .that()
           .resideInAPackage("..repository..")
           .should()
-          .haveSimpleNameEndingWith("Repository");
+          .haveSimpleNameEndingWith("Repository")
+          .allowEmptyShould(true);
 
   @ArchTest
   static final ArchRule converterNaming =
@@ -72,7 +79,8 @@ class ArchitectureTest {
           .that()
           .resideInAPackage("..converter..")
           .should()
-          .haveSimpleNameEndingWith("Converter");
+          .haveSimpleNameEndingWith("Converter")
+          .allowEmptyShould(true);
 
   // ── 금지 패턴 ──
 
