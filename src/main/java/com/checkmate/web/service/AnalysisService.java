@@ -23,30 +23,38 @@ public class AnalysisService {
   private final ArticleRepository articleRepository;
   private final ContentExtractService contentExtractService;
 
-  /**
-   * 뉴스 기사 URL을 받아 분석 세션을 생성하고 본문을 추출한다.
-   *
-   * @param request URL이 담긴 요청 DTO
-   * @return 생성된 세션 ID와 현재 상태
-   */
-  @Transactional
+  /** 뉴스 기사 URL을 받아 분석 세션을 생성하고 본문을 추출한다. 외부 HTTP 호출(Jsoup)은 트랜잭션 밖에서 수행하여 DB 커넥션 점유를 최소화한다. */
   public AnalysisResponse analyze(AnalysisRequest request) {
-    // 1. AnalysisSession 생성 (status=PENDING, member=null — 비회원 허용)
+    // 1. 세션 생성 (트랜잭션 1)
+    AnalysisSession session = createPendingSession();
+
+    // 2. 기사 본문 추출 (트랜잭션 밖 — 외부 HTTP 호출)
+    ExtractedArticle extracted = contentExtractService.extract(request.url());
+
+    // 3. Article 저장 + 상태 업데이트 (트랜잭션 2)
+    persistArticleAndUpdateStatus(session, request.url(), extracted);
+
+    return AnalysisConverter.toResponse(session);
+  }
+
+  @Transactional
+  protected AnalysisSession createPendingSession() {
     AnalysisSession session =
         AnalysisSession.builder()
             .status(SessionStatus.PENDING)
             .requestedAt(LocalDateTime.now())
             .build();
     sessionRepository.save(session);
+    return session;
+  }
 
-    // 2. 기사 본문 추출
-    ExtractedArticle extracted = contentExtractService.extract(request.url());
-
-    // 3. Article 생성
+  @Transactional
+  protected void persistArticleAndUpdateStatus(
+      AnalysisSession session, String url, ExtractedArticle extracted) {
     Article article =
         Article.builder()
             .session(session)
-            .url(request.url())
+            .url(url)
             .title(extracted.getTitle())
             .body(extracted.getBody())
             .lang(extracted.getLang())
@@ -55,9 +63,6 @@ public class AnalysisService {
             .build();
     articleRepository.save(article);
 
-    // 4. 세션 상태 → EXTRACTING (비즈니스 메서드 사용)
     session.updateStatus(SessionStatus.EXTRACTING);
-
-    return AnalysisConverter.toResponse(session);
   }
 }
