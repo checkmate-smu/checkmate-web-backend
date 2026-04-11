@@ -33,7 +33,7 @@ class NewsControllerTest {
   @MockitoBean private AnalysisService analysisService;
 
   @Test
-  @DisplayName("POST /api/v1/analysis — 유효한 URL → 201 반환")
+  @DisplayName("POST /api/v1/analysis-sessions — 유효한 URL → 201 반환")
   void analyze_validUrl_returns201() throws Exception {
     UUID sessionId = UUID.randomUUID();
     AnalysisResponse response =
@@ -43,7 +43,7 @@ class NewsControllerTest {
 
     mockMvc
         .perform(
-            post("/api/v1/analysis")
+            post("/api/v1/analysis-sessions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"url\":\"https://news.naver.com/article/001\"}"))
         .andExpect(status().isCreated())
@@ -52,21 +52,22 @@ class NewsControllerTest {
   }
 
   @Test
-  @DisplayName("POST /api/v1/analysis — URL 미입력 → 400 반환")
+  @DisplayName("POST /api/v1/analysis-sessions — URL 미입력 → 400 반환")
   void analyze_blankUrl_returns400() throws Exception {
     mockMvc
         .perform(
-            post("/api/v1/analysis")
+            post("/api/v1/analysis-sessions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"url\":\"\"}"))
         .andExpect(status().isBadRequest());
   }
 
   @Test
-  @DisplayName("POST /api/v1/analysis — url 필드 누락 → 400 반환")
+  @DisplayName("POST /api/v1/analysis-sessions — url 필드 누락 → 400 반환")
   void analyze_missingUrl_returns400() throws Exception {
     mockMvc
-        .perform(post("/api/v1/analysis").contentType(MediaType.APPLICATION_JSON).content("{}"))
+        .perform(
+            post("/api/v1/analysis-sessions").contentType(MediaType.APPLICATION_JSON).content("{}"))
         .andExpect(status().isBadRequest());
   }
 }

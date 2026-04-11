@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 뉴스 기사 분석 컨트롤러 */
 @RestController
-@RequestMapping("/api/v1/analysis")
+@RequestMapping("/api/v1/analysis-sessions")
 @RequiredArgsConstructor
 public class NewsController {
 
