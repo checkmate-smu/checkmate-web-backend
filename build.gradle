@@ -3,6 +3,8 @@ plugins {
 	id 'org.springframework.boot' version '3.5.13'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'com.diffplug.spotless' version '8.2.1'
+	id 'checkstyle'
+	id 'com.github.spotbugs' version '6.1.11'
 	id 'jacoco'
 }
 
@@ -24,13 +26,18 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.jsoup:jsoup:1.18.3'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'
 
+	// Static Analysis
+	compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.3'
+
 	// Test
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 	testImplementation 'org.testcontainers:postgresql'
@@ -45,6 +52,32 @@ spotless {
 		importOrder()
 		removeUnusedImports()
 		googleJavaFormat()
+	}
+}
+
+// ── Checkstyle (코딩 규칙) ──
+checkstyle {
+	toolVersion = '10.25.0'
+	configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+	maxWarnings = 0
+}
+
+// 테스트 코드는 Checkstyle 제외 (테스트 메서드명 snake_case 허용)
+tasks.named('checkstyleTest') {
+	enabled = false
+}
+
+// ── SpotBugs (버그 탐지) ──
+spotbugs {
+	toolVersion = '4.9.3'
+	effort = 'max'
+	reportLevel = 'medium'
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
+	reports {
+		html.required = true
+		xml.required = false
 	}
 }
 

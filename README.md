@@ -73,6 +73,47 @@ src/main/java/com/checkmate/web/
 
 ---
 
+## CI 파이프라인 & AI 코드 리뷰
+
+PR이 올라오면 아래 순서로 자동 검증됩니다. **모든 단계를 통과해야 머지 가능합니다.**
+
+```
+  PR 생성
+     ↓
+┌─── CI 자동 검증 ──────────────────────────────┐
+│ 1. spotlessCheck   → 코드 포맷 (Google Java)  │
+│ 2. checkstyleMain  → 네이밍/구조 규칙         │  ← FAIL 시
+│ 3. spotbugsMain    → 버그 탐지 (NPE 등)       │     머지 차단
+│ 4. test (ArchUnit) → 레이어 의존성 검증       │
+│ 5. build           → 빌드 검증                │
+└────────────────────────────────────────────────┘
+     ↓ CI 통과한 코드만
+┌─── Claude AI 리뷰 ────────────────────────────┐
+│ • 비즈니스 로직 / 성능 / 보안 / 설계 개선     │
+└────────────────────────────────────────────────┘
+```
+
+### CI가 자동으로 잡아주는 것
+
+| 도구 | 검증 항목 |
+|------|----------|
+| **Spotless** | 포맷, import 순서, 미사용 import |
+| **Checkstyle** | 네이밍 규칙 (PascalCase, camelCase), 메서드 길이, 빈 catch 블록 |
+| **SpotBugs** | NPE, resource leak, 스레드 안전성, equals/hashCode 불일치 |
+| **ArchUnit** | 레이어 의존성 (Controller→Repository 직접 접근 금지), 클래스 접미사 |
+
+### PR 전 로컬에서 확인하는 법
+
+```bash
+./gradlew spotlessApply    # 포맷 자동 수정
+./gradlew checkstyleMain   # 네이밍/구조 검사
+./gradlew spotbugsMain     # 버그 탐지
+./gradlew test             # 테스트 (ArchUnit 포함)
+./gradlew build            # 전체 빌드
+```
+
+---
+
 ## 커밋 메시지 컨벤션
 
 ### Gitmoji + 태그 방식

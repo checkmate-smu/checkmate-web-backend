@@ -26,11 +26,23 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
+      # ── 결정론적 검증 (Fail-fast) ──
+
       - name: Check Format (Spotless)
         run: ./gradlew spotlessCheck
 
-      - name: Run Tests
+      - name: Checkstyle (네이밍/구조 규칙)
+        run: ./gradlew checkstyleMain
+
+      - name: SpotBugs (버그 탐지)
+        run: ./gradlew spotbugsMain
+
+      # ── 테스트 (ArchUnit 아키텍처 검증 포함) ──
+
+      - name: Run Tests (+ ArchUnit)
         run: ./gradlew test
 
+      # ── 빌드 ──
+
       - name: Build Project
-        run: ./gradlew build -x test
+        run: ./gradlew build -x test -x checkstyleMain -x spotbugsMain
