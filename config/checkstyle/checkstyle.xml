@@ -1,0 +1,88 @@
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  CheckMate Backend Checkstyle 설정
+  Google Checks 기반 + 프로젝트 맞춤 규칙
+  포맷팅은 Spotless(Google Java Format)가 담당하므로 여기서는 제외
+-->
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="warning"/>
+
+  <module name="TreeWalker">
+
+    <!-- ══════ 네이밍 규칙 ══════ -->
+    <!-- 클래스명: PascalCase -->
+    <module name="TypeName">
+      <property name="format" value="^[A-Z][a-zA-Z0-9]*$"/>
+    </module>
+    <!-- 메서드명: camelCase -->
+    <module name="MethodName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+    </module>
+    <!-- 상수: UPPER_SNAKE_CASE (Lombok log 필드 예외) -->
+    <module name="ConstantName">
+      <property name="format" value="^(log|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*)$"/>
+    </module>
+    <!-- 멤버 변수: camelCase -->
+    <module name="MemberName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+    </module>
+    <!-- 파라미터: camelCase -->
+    <module name="ParameterName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+    </module>
+    <!-- 로컬 변수: camelCase -->
+    <module name="LocalVariableName">
+      <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+    </module>
+    <!-- 패키지명: 소문자 -->
+    <module name="PackageName">
+      <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+    </module>
+
+    <!-- ══════ 코드 품질 ══════ -->
+    <!-- 빈 catch 블록 금지 -->
+    <module name="EmptyCatchBlock">
+      <property name="exceptionVariableName" value="expected|ignored"/>
+    </module>
+    <!-- equals 오버라이드 시 hashCode도 필수 -->
+    <module name="EqualsHashCode"/>
+    <!-- fall-through switch case 금지 -->
+    <module name="FallThrough"/>
+    <!-- 불필요한 import 금지 -->
+    <module name="UnusedImports"/>
+    <!-- 스타 import 금지 -->
+    <module name="AvoidStarImport"/>
+    <!-- 하나의 파일에 하나의 top-level 클래스만 -->
+    <module name="OneTopLevelClass"/>
+    <!-- modifier 순서 강제 (public static final) -->
+    <module name="ModifierOrder"/>
+
+    <!-- ══════ 복잡도 제한 ══════ -->
+    <!-- 메서드당 최대 50줄 -->
+    <module name="MethodLength">
+      <property name="max" value="50"/>
+    </module>
+    <!-- 파라미터 최대 7개 -->
+    <module name="ParameterNumber">
+      <property name="max" value="7"/>
+      <property name="tokens" value="METHOD_DEF"/>
+    </module>
+
+    <!-- ══════ Lombok/Spring 호환 suppression ══════ -->
+    <module name="SuppressionCommentFilter">
+      <property name="offCommentFormat" value="CHECKSTYLE:OFF"/>
+      <property name="onCommentFormat" value="CHECKSTYLE:ON"/>
+    </module>
+
+  </module>
+
+  <!-- 파일 길이 제한 (300줄) -->
+  <module name="FileLength">
+    <property name="max" value="300"/>
+  </module>
+
+</module>

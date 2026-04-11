@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** 헬스 체크 컨트롤러 */
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/v1")
 public class HealthController {
 
   /** 서버 상태 확인 엔드포인트 */
