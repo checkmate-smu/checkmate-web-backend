@@ -1,0 +1,35 @@
+language: ko-KR
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_instructions:
+    - path: "src/main/java/**/entity/**"
+      instructions: |
+        Entity 규칙 확인:
+        - @Data, @ToString, @Setter 사용 금지
+        - @Enumerated(EnumType.STRING) 필수
+        - fetch = FetchType.LAZY 필수
+        - extends BaseTimeEntity (ApiUsageLog 예외)
+    - path: "src/main/java/**/controller/**"
+      instructions: |
+        Controller 규칙 확인:
+        - /api/v1/ 접두사 필수
+        - 비즈니스 로직 금지 (Service 위임)
+        - Entity 직접 반환 금지 (DTO 변환 필수)
+    - path: "src/main/java/**/service/**"
+      instructions: |
+        Service 규칙 확인:
+        - @Transactional (쓰기), @Transactional(readOnly = true) (읽기)
+        - Entity→DTO 변환은 Converter 호출
+    - path: "src/main/java/**/dto/**"
+      instructions: |
+        DTO 규칙: 요청=record, 응답=클래스+@Builder
+    - path: "src/main/resources/**"
+      instructions: |
+        application-local.yml이 포함되었는지 확인. 포함 시 즉시 지적.
+chat:
+  auto_reply: true
