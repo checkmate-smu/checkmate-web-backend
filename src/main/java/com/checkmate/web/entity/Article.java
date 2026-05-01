@@ -50,4 +50,30 @@ public class Article extends BaseTimeEntity {
 
   @Column(name = "extracted_at")
   private LocalDateTime extractedAt;
+
+  /**
+   * 추출된 기사를 invariant를 만족하는 상태로만 생성한다 (DDD always-valid 모델).
+   *
+   * <p>url은 http(s) 스킴이어야 하며 null/blank 허용 안 함. 다른 필드는 추출 단계에 따라 부재할 수 있어 nullable.
+   */
+  public static Article extract(String url, String title, String body, String lang, String domain) {
+    validateUrl(url);
+    return Article.builder()
+        .url(url)
+        .title(title)
+        .body(body)
+        .lang(lang)
+        .domain(domain)
+        .extractedAt(LocalDateTime.now())
+        .build();
+  }
+
+  private static void validateUrl(String url) {
+    if (url == null || url.isBlank()) {
+      throw new IllegalArgumentException("url은 null이거나 비어 있을 수 없습니다");
+    }
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      throw new IllegalArgumentException("url은 http:// 또는 https://로 시작해야 합니다: " + url);
+    }
+  }
 }
