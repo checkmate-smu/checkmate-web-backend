@@ -44,15 +44,13 @@ public class AnalysisTransactionService {
             .orElseThrow(() -> new NotFoundException("세션을 찾을 수 없습니다"));
 
     Article article =
-        Article.builder()
-            .session(session)
-            .url(url)
-            .title(extracted.getTitle())
-            .body(extracted.getBody())
-            .lang(extracted.getLang())
-            .domain(extracted.getDomain())
-            .extractedAt(LocalDateTime.now())
-            .build();
+        Article.extract(
+                url,
+                extracted.getTitle(),
+                extracted.getBody(),
+                extracted.getLang(),
+                extracted.getDomain())
+            .attachTo(session);
     articleRepository.save(article);
 
     session.updateStatus(SessionStatus.EXTRACTING);

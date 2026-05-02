@@ -2,6 +2,7 @@ package com.checkmate.web.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -101,4 +102,17 @@ class ArchitectureTest {
           .should()
           .dependOnClassesThat()
           .resideInAnyPackage("..controller..", "..service..", "..repository..", "..dto..");
+
+  // ── DDD invariant: entity는 setter 금지 (always-valid 모델) ──
+
+  @ArchTest
+  static final ArchRule entityShouldNotExposeSetters =
+      noMethods()
+          .that()
+          .areDeclaredInClassesThat()
+          .resideInAPackage("com.checkmate.web.entity")
+          .should()
+          .haveNameStartingWith("set")
+          .because(
+              "Entity 변경은 비즈니스 메서드로만 허용 (DDD always-valid 모델). enum 패키지는 별도(..entity.enums..)이므로 영향 없음.");
 }
