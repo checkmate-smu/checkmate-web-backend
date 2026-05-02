@@ -1,11 +1,11 @@
-# DDD/TDD Seed 가이드 — CheckMate Backend
+# DDD/TDD Seed 가이드 — TruthScope Backend
 
 > 최종 갱신: 2026-05-01
 > 트리거 phase: `feat/ddd-tdd-seed` (PR 머지 후 dev → main)
-> 원본 reference: `Team-project/.plans/checkmate-backend-ddd-tdd-application/HANDOFF.md`
-> 상위 PLAN: `checkmate-web/.plans/ddd-tdd-seed/PLAN.md`
+> 원본 reference: `Team-project/.plans/truthscope-backend-ddd-tdd-application/HANDOFF.md`
+> 상위 PLAN: `truthscope-web/.plans/ddd-tdd-seed/PLAN.md`
 
-이 문서는 CheckMate 백엔드에 도입된 **최소 DDD/TDD 패턴**을 팀원이 이해하고 새 코드에 일관되게 적용하기 위한 가이드다. spring-template Phase E0 PR #22 (`5f1acf54`) 패턴 중 **Spring Boot 3.5.13에 정합한 시드만** 발췌.
+이 문서는 TruthScope 백엔드에 도입된 **최소 DDD/TDD 패턴**을 팀원이 이해하고 새 코드에 일관되게 적용하기 위한 가이드다. spring-template Phase E0 PR #22 (`5f1acf54`) 패턴 중 **Spring Boot 3.5.13에 정합한 시드만** 발췌.
 
 ---
 
@@ -13,9 +13,9 @@
 
 | 도입한 것 | 위치 | 효과 |
 |----------|------|-----|
-| `@ServiceConnection` Testcontainers base | `src/test/java/com/checkmate/web/support/AbstractIntegrationTest.java` | 통합 테스트가 외부 Supabase 의존 없이 PostgreSQL 컨테이너로 격리 실행 |
-| Article 도메인 invariant + 정적 팩토리 | `src/main/java/com/checkmate/web/entity/Article.java#extract` | DDD "always-valid" 모델 시범 — invalid 인스턴스 메모리 잔존 차단 |
-| Entity setter 금지 ArchUnit 룰 | `src/test/java/com/checkmate/web/architecture/ArchitectureTest.java#entityShouldNotExposeSetters` | 익명(anemic) 회귀 자동 차단 |
+| `@ServiceConnection` Testcontainers base | `src/test/java/com/truthscope/web/support/AbstractIntegrationTest.java` | 통합 테스트가 외부 Supabase 의존 없이 PostgreSQL 컨테이너로 격리 실행 |
+| Article 도메인 invariant + 정적 팩토리 | `src/main/java/com/truthscope/web/entity/Article.java#extract` | DDD "always-valid" 모델 시범 — invalid 인스턴스 메모리 잔존 차단 |
+| Entity setter 금지 ArchUnit 룰 | `src/test/java/com/truthscope/web/architecture/ArchitectureTest.java#entityShouldNotExposeSetters` | 익명(anemic) 회귀 자동 차단 |
 
 ---
 
@@ -34,7 +34,7 @@ class FooIntegrationTest { ... }
 ### After — `AbstractIntegrationTest` 상속
 
 ```java
-import com.checkmate.web.support.AbstractIntegrationTest;
+import com.truthscope.web.support.AbstractIntegrationTest;
 
 class FooIntegrationTest extends AbstractIntegrationTest {
 
@@ -110,7 +110,7 @@ private static void validateUrl(String url) {
 @ArchTest
 static final ArchRule entityShouldNotExposeSetters =
     noMethods()
-        .that().areDeclaredInClassesThat().resideInAPackage("com.checkmate.web.entity")
+        .that().areDeclaredInClassesThat().resideInAPackage("com.truthscope.web.entity")
         .should().haveNameStartingWith("set");
 ```
 

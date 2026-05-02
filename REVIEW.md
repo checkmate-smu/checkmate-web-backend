@@ -1,4 +1,4 @@
-# CheckMate Backend — PR 리뷰 규칙
+# TruthScope Backend — PR 리뷰 규칙
 
 > Claude AI 리뷰어 전용. 한국어로 리뷰한다.
 > 포맷/네이밍/레이어 위반은 CI(Spotless + Checkstyle + ArchUnit)가 자동 차단하므로 여기서 다루지 않는다.

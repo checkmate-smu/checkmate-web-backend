@@ -8,7 +8,7 @@ plugins {
 	id 'jacoco'
 }
 
-group = 'com.checkmate'
+group = 'com.truthscope'
 version = '0.0.1-SNAPSHOT'
 
 java {
