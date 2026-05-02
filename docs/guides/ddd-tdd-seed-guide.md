@@ -64,18 +64,18 @@ class FooIntegrationTest extends AbstractIntegrationTest {
 ### Before — anemic entity (모든 필드 builder로 무검증 주입)
 
 ```java
+// ⚠️ 이제 @Builder(access = PRIVATE)로 막혀 있어 컴파일조차 안 된다 — 아래는 과거 anti-pattern 시각화용
 Article article = Article.builder()
-    .url("ftp://invalid")  // invalid url이 통과
+    .url("ftp://invalid")  // invalid url이 통과 (이전 anemic 모델에서)
     .build();
 ```
 
 ### After — 정적 팩토리 + invariant
 
 ```java
-Article article = Article.extract(
-    "https://example.com/news/123",  // url validation 강제
-    title, body, lang, domain
-);
+Article article = Article
+    .extract("https://example.com/news/123", title, body, lang, domain) // url validation 강제
+    .attachTo(session);                                                 // 세션 부착은 별도 invariant
 ```
 
 내부:
