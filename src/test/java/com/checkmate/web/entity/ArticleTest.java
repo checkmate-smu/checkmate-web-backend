@@ -3,6 +3,8 @@ package com.checkmate.web.entity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.checkmate.web.entity.enums.SessionStatus;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -49,5 +51,40 @@ class ArticleTest {
     assertThatThrownBy(() -> Article.extract("   ", null, null, null, null))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("url");
+  }
+
+  @Test
+  void attachTo_세션_부착_시_session_getter로_조회_가능() {
+    Article article = Article.extract("https://example.com/news/1", null, null, null, null);
+    AnalysisSession session = newSession();
+
+    article.attachTo(session);
+
+    assertThat(article.getSession()).isSameAs(session);
+  }
+
+  @Test
+  void attachTo_null_session은_거부() {
+    Article article = Article.extract("https://example.com/news/2", null, null, null, null);
+
+    assertThatThrownBy(() -> article.attachTo(null))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("session");
+  }
+
+  @Test
+  void attachTo_이미_부착된_Article은_재부착_불가() {
+    Article article = Article.extract("https://example.com/news/3", null, null, null, null);
+    article.attachTo(newSession());
+
+    assertThatThrownBy(() -> article.attachTo(newSession()))
+        .isInstanceOf(IllegalStateException.class);
+  }
+
+  private static AnalysisSession newSession() {
+    return AnalysisSession.builder()
+        .status(SessionStatus.PENDING)
+        .requestedAt(LocalDateTime.now())
+        .build();
   }
 }

@@ -11,6 +11,7 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,9 +20,9 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "articles")
 @Getter
-@NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-@Builder
-@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Builder(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class Article extends BaseTimeEntity {
 
   @Id
@@ -54,7 +55,8 @@ public class Article extends BaseTimeEntity {
   /**
    * 추출된 기사를 invariant를 만족하는 상태로만 생성한다 (DDD always-valid 모델).
    *
-   * <p>url은 http(s) 스킴이어야 하며 null/blank 허용 안 함. 다른 필드는 추출 단계에 따라 부재할 수 있어 nullable.
+   * <p>url은 http(s) 스킴이어야 하며 null/blank 허용 안 함. 다른 필드는 추출 단계에 따라 부재할 수 있어 nullable. 세션은 별도 {@link
+   * #attachTo(AnalysisSession)} 호출로 부착한다.
    */
   public static Article extract(String url, String title, String body, String lang, String domain) {
     validateUrl(url);
@@ -66,6 +68,22 @@ public class Article extends BaseTimeEntity {
         .domain(domain)
         .extractedAt(LocalDateTime.now())
         .build();
+  }
+
+  /**
+   * 분석 세션에 1회만 부착한다 (invariant). 이미 부착된 Article을 다시 부착하면 {@link IllegalStateException}.
+   *
+   * @return this — 메서드 체이닝용
+   */
+  public Article attachTo(AnalysisSession session) {
+    if (session == null) {
+      throw new IllegalArgumentException("session은 null일 수 없습니다");
+    }
+    if (this.session != null) {
+      throw new IllegalStateException("Article은 이미 세션에 부착되었습니다");
+    }
+    this.session = session;
+    return this;
   }
 
   private static void validateUrl(String url) {
