@@ -69,7 +69,7 @@ src/main/java/com/truthscope/web/
 └── exception/      # 전역 예외 처리
 ```
 
-> Entity 작성 가이드: [docs/guides/entity-mapping-guide.md](../../docs/guides/entity-mapping-guide.md)
+> Entity 작성 가이드: [docs/guides/entity-mapping-guide.md](./docs/guides/entity-mapping-guide.md)
 
 ---
 
