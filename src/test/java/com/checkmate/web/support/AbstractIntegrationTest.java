@@ -16,7 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
  * <p>참고: spring-template Phase E0 PR #22 패턴을 CheckMate에 시드.
  */
 @SpringBootTest
-@Testcontainers
+@Testcontainers(disabledWithoutDocker = true)
 @TestPropertySource(properties = {"spring.jpa.hibernate.ddl-auto=create-drop"})
 public abstract class AbstractIntegrationTest {
 
