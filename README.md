@@ -1,4 +1,4 @@
-# CheckMate Web Backend
+# TruthScope Web Backend
 
 > AI 뉴스 신뢰도 분석 서비스 — 백엔드 서버
 
@@ -6,7 +6,7 @@
 
 ## 프로젝트 개요
 
-**CheckMate Web**은 AI를 활용하여 뉴스 기사의 신뢰도를 분석하는 서비스입니다.
+**TruthScope Web**은 AI를 활용하여 뉴스 기사의 신뢰도를 분석하는 서비스입니다.
 
 ### Tech Stack
 
@@ -30,8 +30,8 @@
 
 ```bash
 # 1. 레포 클론
-git clone https://github.com/checkmate-smu/checkmate-web-backend.git
-cd checkmate-web-backend
+git clone https://github.com/truthscope-smu/truthscope-web-backend.git
+cd truthscope-web-backend
 
 # 2. 로컬 DB 설정 파일 생성 (아래 "환경 설정" 참고)
 # src/main/resources/application-local.yml 생성
@@ -58,7 +58,7 @@ cd checkmate-web-backend
 ## 프로젝트 구조
 
 ```
-src/main/java/com/checkmate/web/
+src/main/java/com/truthscope/web/
 ├── controller/     # REST API 엔드포인트
 ├── service/        # 비즈니스 로직
 ├── repository/     # JPA Repository

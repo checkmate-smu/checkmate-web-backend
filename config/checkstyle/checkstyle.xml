@@ -3,7 +3,7 @@
     "https://checkstyle.org/dtds/configuration_1_3.dtd">
 
 <!--
-  CheckMate Backend Checkstyle 설정
+  TruthScope Backend Checkstyle 설정
   Google Checks 기반 + 프로젝트 맞춤 규칙
   포맷팅은 Spotless(Google Java Format)가 담당하므로 여기서는 제외
 -->
