@@ -51,11 +51,11 @@ public class AnalysisTransactionService {
                 extracted.getLang(),
                 extracted.getDomain())
             .attachTo(session);
-    articleRepository.save(article);
+    Article savedArticle = articleRepository.save(article);
 
     session.updateStatus(SessionStatus.EXTRACTING);
 
-    return AnalysisConverter.toResponse(session);
+    return AnalysisConverter.toResponse(session, savedArticle);
   }
 
   /** 세션 상태를 FAILED로 전이 */

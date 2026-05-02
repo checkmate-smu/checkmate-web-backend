@@ -33,11 +33,16 @@ class NewsControllerTest {
   @MockitoBean private AnalysisService analysisService;
 
   @Test
-  @DisplayName("POST /api/v1/analysis-sessions — 유효한 URL → 201 반환")
+  @DisplayName("POST /api/v1/analysis-sessions — 유효한 URL → 201 반환 (sessionId + articleId + status)")
   void analyze_validUrl_returns201() throws Exception {
     UUID sessionId = UUID.randomUUID();
+    UUID articleId = UUID.randomUUID();
     AnalysisResponse response =
-        AnalysisResponse.builder().sessionId(sessionId).status("EXTRACTING").build();
+        AnalysisResponse.builder()
+            .sessionId(sessionId)
+            .articleId(articleId)
+            .status("EXTRACTING")
+            .build();
 
     given(analysisService.analyze(any(AnalysisRequest.class))).willReturn(response);
 
@@ -48,6 +53,7 @@ class NewsControllerTest {
                 .content("{\"url\":\"https://news.naver.com/article/001\"}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.sessionId").value(sessionId.toString()))
+        .andExpect(jsonPath("$.articleId").value(articleId.toString()))
         .andExpect(jsonPath("$.status").value("EXTRACTING"));
   }
 
