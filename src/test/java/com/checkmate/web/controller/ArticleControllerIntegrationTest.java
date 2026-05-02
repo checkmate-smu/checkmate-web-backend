@@ -100,11 +100,17 @@ class ArticleControllerIntegrationTest extends AbstractIntegrationTest {
   void attachToSession_alreadyAttached_returns409() {
     AttachToSessionRequest request = new AttachToSessionRequest(savedSession.getId());
 
-    rest.postForEntity(
-        "/api/v1/articles/" + savedExtractedArticle.getId() + "/attach",
-        request,
-        ArticleResponse.class);
+    // 1차 부착: 명시적 success 검증 — 실패 시 후속 409 검증 무효화 방지 (CodeRabbit 리뷰)
+    ResponseEntity<ArticleResponse> firstAttach =
+        rest.postForEntity(
+            "/api/v1/articles/" + savedExtractedArticle.getId() + "/attach",
+            request,
+            ArticleResponse.class);
+    assertThat(firstAttach.getStatusCode()).isEqualTo(HttpStatus.OK);
+    assertThat(firstAttach.getBody()).isNotNull();
+    assertThat(firstAttach.getBody().getStatus()).isEqualTo("ATTACHED");
 
+    // 2차 부착 시도: 재부착 거부 검증
     ResponseEntity<String> response =
         rest.postForEntity(
             "/api/v1/articles/" + savedExtractedArticle.getId() + "/attach", request, String.class);
