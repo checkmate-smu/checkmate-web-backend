@@ -543,9 +543,9 @@ public class ClaimAnalysisService {
 
 > **주의: 이 설정은 Sprint 2 시작 시 추가합니다. 현재 `build.gradle`과 코드에는 없습니다.**
 
-`Page<T>`�� 그대로 직렬화하면 내부 필드가 노출되므로, **Spring 공식 VIA_DTO 모드**를 사용합니다.
+`Page<T>`를 그대로 직렬화하면 내부 필드가 노출되므로, **Spring 공식 VIA_DTO 모드**를 사용합니다.
 
-### 설정 (전�� 한 줄)
+### 설정 (전체 한 줄)
 
 ```java
 // config/WebConfig.java
