@@ -1,6 +1,7 @@
 package com.checkmate.web.exception;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -52,5 +54,50 @@ class GlobalExceptionHandlerTest {
         .andExpect(jsonPath("$.status").value("error"))
         .andExpect(jsonPath("$.statusCode").value(500))
         .andExpect(jsonPath("$.message").value("서버 내부 오류"));
+  }
+
+  @Test
+  @DisplayName("IllegalArgumentException → 400, status=fail 반환")
+  void illegalArgumentReturns400() throws Exception {
+    mockMvc
+        .perform(get("/test/illegal-argument"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value("fail"))
+        .andExpect(jsonPath("$.statusCode").value(400))
+        .andExpect(jsonPath("$.message").value("잘못된 인자"));
+  }
+
+  @Test
+  @DisplayName("IllegalStateException → 409, status=fail 반환")
+  void illegalStateReturns409() throws Exception {
+    mockMvc
+        .perform(get("/test/illegal-state"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.status").value("fail"))
+        .andExpect(jsonPath("$.statusCode").value(409))
+        .andExpect(jsonPath("$.message").value("잘못된 상태"));
+  }
+
+  @Test
+  @DisplayName("MethodArgumentTypeMismatchException → 400, ApiErrorResponse shape")
+  void typeMismatchReturns400() throws Exception {
+    mockMvc
+        .perform(get("/test/type-mismatch/notauuid"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value("fail"))
+        .andExpect(jsonPath("$.statusCode").value(400));
+  }
+
+  @Test
+  @DisplayName("HttpMessageNotReadableException → 400, ApiErrorResponse shape")
+  void messageNotReadableReturns400() throws Exception {
+    mockMvc
+        .perform(
+            post("/test/malformed-body")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{not-json"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.status").value("fail"))
+        .andExpect(jsonPath("$.statusCode").value(400));
   }
 }
