@@ -1,6 +1,11 @@
 package com.checkmate.web.exception;
 
+import java.util.Map;
+import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,5 +27,25 @@ public class ExceptionTestController {
   @GetMapping("/server-error")
   public void serverError() {
     throw new RuntimeException("예상치 못한 오류");
+  }
+
+  @GetMapping("/illegal-argument")
+  public void throwIllegalArgument() {
+    throw new IllegalArgumentException("잘못된 인자");
+  }
+
+  @GetMapping("/illegal-state")
+  public void throwIllegalState() {
+    throw new IllegalStateException("잘못된 상태");
+  }
+
+  @GetMapping("/type-mismatch/{uuid}")
+  public String typeMismatch(@PathVariable UUID uuid) {
+    return uuid.toString();
+  }
+
+  @PostMapping("/malformed-body")
+  public Map<String, Object> malformedBody(@RequestBody Map<String, Object> body) {
+    return body;
   }
 }
