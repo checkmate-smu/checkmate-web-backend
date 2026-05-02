@@ -1,6 +1,6 @@
 spring:
   application:
-    name: checkmate-web-backend
+    name: truthscope-web-backend
 
   datasource:
     url: jdbc:postgresql://${SUPABASE_HOST:localhost}:${SUPABASE_PORT:5432}/${SUPABASE_DB:postgres}
@@ -26,5 +26,5 @@ server:
 
 logging:
   level:
-    com.checkmate.web: DEBUG
+    com.truthscope.web: DEBUG
     org.hibernate.SQL: DEBUG

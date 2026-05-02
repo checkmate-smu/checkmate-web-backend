@@ -1,7 +1,7 @@
 # Backend DDD/TDD Aggregate Template
 
 > Phase 21에서 검증된 DDD/TDD seed 패턴을 Sprint 2+ 신규 aggregate에 재사용하기 위한 reference template.
-> reference 코드: `src/main/java/com/checkmate/web/entity/Article.java` (PR #27 + #28 + #29 머지)
+> reference 코드: `src/main/java/com/truthscope/web/entity/Article.java` (PR #27 + #28 + #29 머지)
 
 ## 1. Aggregate root 작성 패턴
 
@@ -89,7 +89,7 @@ public class Article extends BaseTimeEntity {
 
 ```bash
 # 위치
-src/main/java/com/checkmate/web/entity/{NewEntity}.java
+src/main/java/com/truthscope/web/entity/{NewEntity}.java
 ```
 
 체크리스트:
@@ -145,7 +145,7 @@ public {NewEntity} {action}({인자}) {
 
 ```bash
 # 위치
-src/test/java/com/checkmate/web/entity/{NewEntity}Test.java
+src/test/java/com/truthscope/web/entity/{NewEntity}Test.java
 ```
 
 7+ test cases 의무:
