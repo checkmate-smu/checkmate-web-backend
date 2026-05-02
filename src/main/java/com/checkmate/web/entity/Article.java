@@ -91,7 +91,7 @@ public class Article extends BaseTimeEntity {
       throw new IllegalArgumentException("url은 null이거나 비어 있을 수 없습니다");
     }
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      throw new IllegalArgumentException("url은 http:// 또는 https://로 시작해야 합니다: " + url);
+      throw new IllegalArgumentException("url은 http:// 또는 https://로 시작해야 합니다");
     }
   }
 }
