@@ -34,6 +34,7 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 뉴스 URL에서 기사 본문을 추출하는 서비스. SSRF 방어를 위해 SsrfGuard로 사전 검증 + Apache HttpClient 5의 custom DnsResolver로
@@ -60,6 +61,7 @@ public class ContentExtractService {
    * @param url 뉴스 기사 URL (http/https만 허용, 사설망/loopback/문서화 대역 차단)
    * @return 제목, 본문, 언어, 도메인이 담긴 ExtractedArticle
    */
+  @Transactional(readOnly = true)
   public ExtractedArticle extract(String url) {
     SsrfGuard.ValidatedTarget initialTarget = ssrfGuard.validateAndResolve(url);
     FetchOutcome outcome = fetchWithRedirectGuard(initialTarget);
@@ -97,16 +99,20 @@ public class ContentExtractService {
             throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
           }
           URI nextUri = parseLocation(result.locationHeader(), currentTarget.uri(), initialUri);
+          // CodeRabbit #4: redirect chain 로그도 redact (userinfo/query 유출 방지)
           log.debug(
               "Redirect from {} to {} ({}/{})",
-              currentTarget.uri(),
-              nextUri,
+              SsrfGuard.redactUri(currentTarget.uri()),
+              SsrfGuard.redactUri(nextUri),
               redirects,
               MAX_REDIRECTS);
           try {
             currentTarget = ssrfGuard.validateAndResolve(nextUri.toString());
           } catch (SsrfBlockedException e) {
-            log.warn("SSRF block on redirect chain: initial={}, blocked={}", initialUri, nextUri);
+            log.warn(
+                "SSRF block on redirect chain: initial={} blocked={}",
+                SsrfGuard.redactUri(initialUri),
+                SsrfGuard.redactUri(nextUri));
             throw e;
           }
           continue;
@@ -149,19 +155,15 @@ public class ContentExtractService {
         throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
       }
 
-      // R1-2: null entity check
       HttpEntity entity = response.getEntity();
       if (entity == null) {
         throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
       }
-      // CX-22: charset 추출 (Content-Type header)
       Charset charset = extractCharset(entity);
       try {
-        // CX-12 + CX-14: bounded read on decompressed stream
         byte[] body = readBoundedBytes(entity.getContent(), MAX_FETCH_BYTES, initialUri);
         return FetchResult.body(body, charset);
       } catch (ExtractionFailedException e) {
-        // R2-4: ensure entity is consumed even when bounded read aborts
         try {
           EntityUtils.consume(entity);
         } catch (IOException ignored) {

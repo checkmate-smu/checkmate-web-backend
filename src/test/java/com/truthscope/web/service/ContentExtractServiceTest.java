@@ -51,7 +51,9 @@ class ContentExtractServiceTest {
     @DisplayName("8000자 이하 텍스트는 그대로 반환")
     void shortTextNotTruncated() {
       String shortText = "a".repeat(7999);
+      String result = ArticleHtmlParser.truncate(shortText);
       assertThat(shortText.length()).isLessThan(8000);
+      assertThat(result).isEqualTo(shortText);
     }
 
     @Test

@@ -82,7 +82,7 @@ public class SsrfGuard {
       throw new BadRequestException("유효하지 않은 URL 형식입니다");
     }
     String scheme = uri.getScheme();
-    if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
+    if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
       throw new BadRequestException("유효하지 않은 URL 형식입니다");
     }
     String host = uri.getHost();
@@ -108,12 +108,8 @@ public class SsrfGuard {
       String ipString = effectiveAddr.getHostAddress();
       for (IpAddressMatcher matcher : denyMatchers) {
         if (matcher.matches(ipString)) {
-          log.warn(
-              "SSRF block: url={} host={} resolved={} matched_cidr={}",
-              url,
-              host,
-              ipString,
-              matcher);
+          // CodeRabbit #2: raw URL 로그 회피 (userinfo/query 토큰 유출 방지) - host/IP/CIDR만 기록
+          log.warn("SSRF block: host={} resolved={} matched_cidr={}", host, ipString, matcher);
           throw new SsrfBlockedException("내부 네트워크 주소는 차단되었습니다");
         }
       }
@@ -125,6 +121,35 @@ public class SsrfGuard {
   /** Test seam - Mockito @Spy로 override 가능 (DNS rebinding 시나리오 등). */
   protected InetAddress[] resolveHost(String host) throws UnknownHostException {
     return InetAddress.getAllByName(host);
+  }
+
+  /**
+   * 로그 안전을 위해 URI를 {@code scheme://host[:port][/path]}로 redact.
+   *
+   * <p>userinfo와 query string은 제거 — query에 담긴 토큰/식별자나 userinfo의 자격 증명이 로그에 유출되는 것을 방지. SSRF block /
+   * redirect chain 등 로그에서 사용.
+   *
+   * @param uri 원본 URI (null 허용)
+   * @return redacted 형식 문자열, null 입력 시 {@code "<null>"}
+   */
+  public static String redactUri(URI uri) {
+    if (uri == null) {
+      return "<null>";
+    }
+    StringBuilder sb = new StringBuilder();
+    if (uri.getScheme() != null) {
+      sb.append(uri.getScheme()).append("://");
+    }
+    if (uri.getHost() != null) {
+      sb.append(uri.getHost());
+    }
+    if (uri.getPort() != -1) {
+      sb.append(':').append(uri.getPort());
+    }
+    if (uri.getPath() != null) {
+      sb.append(uri.getPath());
+    }
+    return sb.toString();
   }
 
   /** RFC 4291 §2.5.5.2 IPv4-mapped IPv6 (::ffff:0:0/96)를 IPv4로 unmap. */
