@@ -82,7 +82,7 @@ public class SsrfGuard {
       throw new BadRequestException("유효하지 않은 URL 형식입니다");
     }
     String scheme = uri.getScheme();
-    if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) {
+    if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
       throw new BadRequestException("유효하지 않은 URL 형식입니다");
     }
     String host = uri.getHost();
