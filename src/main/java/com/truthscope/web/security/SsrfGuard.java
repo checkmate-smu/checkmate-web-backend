@@ -152,5 +152,17 @@ public class SsrfGuard {
 
   /** SsrfGuard 검증 결과 - 정규화된 host + scheme/port + pinned addresses (DNS rebinding 방어용). */
   public record ValidatedTarget(
-      URI uri, String host, String scheme, int port, InetAddress[] approvedAddresses) {}
+      URI uri, String host, String scheme, int port, InetAddress[] approvedAddresses) {
+
+    /** Compact constructor: defensive copy로 caller mutation 방지. */
+    public ValidatedTarget {
+      approvedAddresses = approvedAddresses.clone();
+    }
+
+    /** Defensive accessor: clone 반환 (SpotBugs EI_EXPOSE_REP 회피). */
+    @Override
+    public InetAddress[] approvedAddresses() {
+      return approvedAddresses.clone();
+    }
+  }
 }
