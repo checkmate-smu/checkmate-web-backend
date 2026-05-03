@@ -155,19 +155,15 @@ public class ContentExtractService {
         throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
       }
 
-      // R1-2: null entity check
       HttpEntity entity = response.getEntity();
       if (entity == null) {
         throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
       }
-      // CX-22: charset 추출 (Content-Type header)
       Charset charset = extractCharset(entity);
       try {
-        // CX-12 + CX-14: bounded read on decompressed stream
         byte[] body = readBoundedBytes(entity.getContent(), MAX_FETCH_BYTES, initialUri);
         return FetchResult.body(body, charset);
       } catch (ExtractionFailedException e) {
-        // R2-4: ensure entity is consumed even when bounded read aborts
         try {
           EntityUtils.consume(entity);
         } catch (IOException ignored) {
