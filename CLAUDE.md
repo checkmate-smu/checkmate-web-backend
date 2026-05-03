@@ -96,12 +96,15 @@
 | 항목 | 정책 |
 |---|---|
 | Spring 의존 | **금지** — Plain Java + JUnit 5만. 필요하면 별 module로 분리 |
+| **Git 추적** | **비추적** (`.gitignore`에 `src/spike/` 등재) — 개인 로컬 전용. 결과 공유는 옵시디언/Notion 또는 별 `.plans/` 산출물 |
 | Spotless (포맷) | 적용 — 협업 가능한 코드 스타일 유지 |
 | Checkstyle | **비활성화** (`checkstyleSpike.enabled = false`) |
 | SpotBugs | **비활성화** (`spotbugsSpike.enabled = false`) — 연구 코드 false positive 무시 |
 | 평소 `./gradlew test` | **자동 제외** — 별 sourceSet이라 test classpath 미공유 |
 | 명시 실행 | `./gradlew spikeTest` |
 | Throwaway 권장 어노테이션 | `@Tag("spike")` + `@Disabled("spike — verified YYYY-MM-DD. Enable manually to re-run.")` |
+
+> **왜 git 비추적?** spike 코드는 throwaway 검증용이라 정식 PR/리뷰 없이 빠르게 작성·폐기. API 키 의존성도 잦음. 결과(CSV, 분석)만 옵시디언/Notion에 박제하면 충분. 본 정책 변경 시 `.gitignore`에서 `src/spike/` 줄 제거 + 사용자 결정 필요.
 
 ### build.gradle 설정 (이미 적용됨)
 
@@ -129,20 +132,22 @@ tasks.matching { it.name in ['checkstyleSpike', 'spotbugsSpike'] }.configureEach
 
 ### 사용 시점 (스파이크 추가)
 
-1. 새 spike 디렉토리: `src/spike/java/{도메인}/...`
+1. 새 spike 디렉토리: `src/spike/java/{도메인}/...` (working tree만, git 무시)
 2. 패키지 자유 (`com.truthscope.web.spike.{도메인}` 권장 but 강제 아님)
 3. 리소스: `src/spike/resources/{도메인}/...`
-4. 클래스 상단에 `@Tag("spike")` + `@Disabled` (검증 완료 후 영구 보존이라면)
+4. 클래스 상단에 `@Tag("spike")` + `@Disabled` (검증 완료 후 보존이라면)
 5. 처음 실행: `./gradlew spikeTest --tests "...{TestName}"` (또는 `@Disabled` 제거 후 `./gradlew spikeTest`)
+6. 결과(CSV, 분석)는 옵시디언/Notion/`.plans/` 에 별도 박제 — 코드 자체는 로컬에서만 보존
 
 ### 사용 시점 (검증 졸업 시)
 
 spike 코드가 본 프로덕션 패턴으로 졸업하면 → `src/spike/`에서 `src/main/` + `src/test/`로 정식 마이그레이션. spike sourceSet은 **연구 단계 임시 보관소**.
 
-### 현재 spike 입주 작업
+### 현재 spike 입주 작업 (PM 로컬 working tree, git untracked)
 
 - `src/spike/java/com/truthscope/web/spike/datasourceaccuracy/` — 데이터 소스 6개 정합성 측정 (2026-04-24 PM-spike rev.5/6) — 4 클래스
 - `src/spike/resources/spike/datasource-accuracy/` — gold-set + 결과 CSV 4개
+- 코드 백업/공유: `.plans/19-plan-v1.2/pm-spike/2026-04-24-datasource-accuracy/` (analysis 산출물) + 옵시디언
 
 ---
 

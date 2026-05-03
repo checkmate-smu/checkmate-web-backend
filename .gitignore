@@ -61,3 +61,11 @@ logs/
 .claude/
 .plans/
 context/
+
+# ===========================
+# Spike sourceSet (개인 로컬 전용 — throwaway 연구 코드)
+# ===========================
+# build.gradle 의 sourceSet 정의는 git tracked, 그러나 src/spike/ 콘텐츠는
+# 개인 로컬에서만 작업. 결과 공유는 옵시디언/Notion 또는 별 .plans/ 산출물.
+# 상세: CLAUDE.md ## spike sourceSet
+src/spike/
