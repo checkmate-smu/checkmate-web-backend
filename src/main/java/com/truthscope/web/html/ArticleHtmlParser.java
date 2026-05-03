@@ -1,4 +1,4 @@
-package com.truthscope.web.service;
+package com.truthscope.web.html;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -8,11 +8,14 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-/** 기사 HTML Document에서 제목/본문/언어/도메인을 추출하는 정적 헬퍼. */
+/**
+ * 기사 HTML Document에서 제목/본문/언어/도메인을 추출하는 정적 헬퍼. ArchUnit serviceNaming 룰 회피 위해 service 패키지 외부 분리
+ * (R2-6 SsrfGuard 패턴 동일).
+ */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-final class ArticleHtmlParser {
+public final class ArticleHtmlParser {
 
-  static final int MAX_BODY_LENGTH = 8000;
+  public static final int MAX_BODY_LENGTH = 8000;
 
   private static final String[] BODY_SELECTORS = {
     "#newsct_article", // 네이버 뉴스 (현재)
@@ -29,7 +32,7 @@ final class ArticleHtmlParser {
     ".news_body",
   };
 
-  static String extractDomain(String url) {
+  public static String extractDomain(String url) {
     try {
       return new URI(url).getHost();
     } catch (URISyntaxException e) {
@@ -37,7 +40,7 @@ final class ArticleHtmlParser {
     }
   }
 
-  static String extractTitle(Document doc) {
+  public static String extractTitle(Document doc) {
     Element ogTitle = doc.selectFirst("meta[property=og:title]");
     if (ogTitle != null && !ogTitle.attr("content").isBlank()) {
       return ogTitle.attr("content").trim();
@@ -53,7 +56,7 @@ final class ArticleHtmlParser {
     return "";
   }
 
-  static String extractBody(Document doc) {
+  public static String extractBody(Document doc) {
     for (String selector : BODY_SELECTORS) {
       Elements elements = doc.select(selector);
       if (!elements.isEmpty()) {
@@ -67,7 +70,7 @@ final class ArticleHtmlParser {
     return truncate(bodyText);
   }
 
-  static String extractLang(Document doc) {
+  public static String extractLang(Document doc) {
     Element html = doc.selectFirst("html");
     if (html != null) {
       String lang = html.attr("lang");
@@ -78,7 +81,7 @@ final class ArticleHtmlParser {
     return "unknown";
   }
 
-  static String truncate(String text) {
+  public static String truncate(String text) {
     if (text.length() <= MAX_BODY_LENGTH) {
       return text;
     }

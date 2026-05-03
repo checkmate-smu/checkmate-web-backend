@@ -3,6 +3,7 @@ package com.truthscope.web.service;
 import com.truthscope.web.dto.response.ExtractedArticle;
 import com.truthscope.web.exception.ExtractionFailedException;
 import com.truthscope.web.exception.SsrfBlockedException;
+import com.truthscope.web.html.ArticleHtmlParser;
 import com.truthscope.web.security.SsrfGuard;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -231,10 +232,7 @@ public class ContentExtractService {
         .setConnectionManager(connManager)
         .setDefaultRequestConfig(requestConfig)
         .setUserAgent(USER_AGENT)
-        // R4-2: global authoritative — RedirectExec interceptor가 chain에서 제외됨.
-        // 진정한 redirect 차단 + manual re-validation은 fetchWithRedirectGuard에서 수행.
         .disableRedirectHandling()
-        // CX-18: setConnectionReuseStrategy로 명시 비활성화 (defense-in-depth)
         .setConnectionReuseStrategy((request, response, context) -> false)
         .build();
   }
