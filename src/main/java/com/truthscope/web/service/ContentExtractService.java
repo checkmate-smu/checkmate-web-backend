@@ -97,16 +97,20 @@ public class ContentExtractService {
             throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
           }
           URI nextUri = parseLocation(result.locationHeader(), currentTarget.uri(), initialUri);
+          // CodeRabbit #4: redirect chain 로그도 redact (userinfo/query 유출 방지)
           log.debug(
               "Redirect from {} to {} ({}/{})",
-              currentTarget.uri(),
-              nextUri,
+              SsrfGuard.redactUri(currentTarget.uri()),
+              SsrfGuard.redactUri(nextUri),
               redirects,
               MAX_REDIRECTS);
           try {
             currentTarget = ssrfGuard.validateAndResolve(nextUri.toString());
           } catch (SsrfBlockedException e) {
-            log.warn("SSRF block on redirect chain: initial={}, blocked={}", initialUri, nextUri);
+            log.warn(
+                "SSRF block on redirect chain: initial={} blocked={}",
+                SsrfGuard.redactUri(initialUri),
+                SsrfGuard.redactUri(nextUri));
             throw e;
           }
           continue;
