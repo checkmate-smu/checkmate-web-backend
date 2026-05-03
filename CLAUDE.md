@@ -80,6 +80,72 @@
 - Google Java Format (Spotless): `./gradlew spotlessApply`
 - 빌드 전 반드시 포맷 적용
 
+## spike sourceSet — throwaway 연구 코드 격리 (2026-05-04 도입)
+
+평소 build와 분리해서 운영하는 **연구·검증용 throwaway 코드** 전용 sourceSet. 외부 API/데이터소스 정합성 측정 같은 비-프로덕션 코드를 main test classpath에 섞지 않기 위해 도입.
+
+### 위치
+
+| 종류 | 경로 |
+|---|---|
+| Java 소스 | `src/spike/java/` (패키지 자유) |
+| 리소스 (CSV, fixtures 등) | `src/spike/resources/` |
+
+### 정책
+
+| 항목 | 정책 |
+|---|---|
+| Spring 의존 | **금지** — Plain Java + JUnit 5만. 필요하면 별 module로 분리 |
+| Spotless (포맷) | 적용 — 협업 가능한 코드 스타일 유지 |
+| Checkstyle | **비활성화** (`checkstyleSpike.enabled = false`) |
+| SpotBugs | **비활성화** (`spotbugsSpike.enabled = false`) — 연구 코드 false positive 무시 |
+| 평소 `./gradlew test` | **자동 제외** — 별 sourceSet이라 test classpath 미공유 |
+| 명시 실행 | `./gradlew spikeTest` |
+| Throwaway 권장 어노테이션 | `@Tag("spike")` + `@Disabled("spike — verified YYYY-MM-DD. Enable manually to re-run.")` |
+
+### build.gradle 설정 (이미 적용됨)
+
+```groovy
+sourceSets {
+    spike {
+        java { srcDirs = ['src/spike/java'] }
+        resources { srcDirs = ['src/spike/resources'] }
+        compileClasspath += sourceSets.test.runtimeClasspath
+        runtimeClasspath += sourceSets.test.runtimeClasspath
+    }
+}
+
+configurations {
+    spikeImplementation.extendsFrom testImplementation
+    spikeRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('spikeTest', Test) { ... }
+
+tasks.matching { it.name in ['checkstyleSpike', 'spotbugsSpike'] }.configureEach {
+    enabled = false
+}
+```
+
+### 사용 시점 (스파이크 추가)
+
+1. 새 spike 디렉토리: `src/spike/java/{도메인}/...`
+2. 패키지 자유 (`com.truthscope.web.spike.{도메인}` 권장 but 강제 아님)
+3. 리소스: `src/spike/resources/{도메인}/...`
+4. 클래스 상단에 `@Tag("spike")` + `@Disabled` (검증 완료 후 영구 보존이라면)
+5. 처음 실행: `./gradlew spikeTest --tests "...{TestName}"` (또는 `@Disabled` 제거 후 `./gradlew spikeTest`)
+
+### 사용 시점 (검증 졸업 시)
+
+spike 코드가 본 프로덕션 패턴으로 졸업하면 → `src/spike/`에서 `src/main/` + `src/test/`로 정식 마이그레이션. spike sourceSet은 **연구 단계 임시 보관소**.
+
+### 현재 spike 입주 작업
+
+- `src/spike/java/com/truthscope/web/spike/datasourceaccuracy/` — 데이터 소스 6개 정합성 측정 (2026-04-24 PM-spike rev.5/6) — 4 클래스
+- `src/spike/resources/spike/datasource-accuracy/` — gold-set + 결과 CSV 4개
+
+---
+
 ## Gemini 모델 — 절대 변경 금지
 
 - 1순위: `gemini-3.1-flash-lite-preview`
