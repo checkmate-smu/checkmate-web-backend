@@ -1,30 +1,18 @@
 package com.truthscope.web.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.truthscope.web.html.ArticleHtmlParser;
-import com.truthscope.web.security.SsrfGuard;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
  * ContentExtractService helper 테스트 — ValidateUrl 7건은 SsrfGuardTest로 migration 완료, ExtractDomain 3 +
- * BodyTruncation 3 보존 (extractDomain은 ArticleHtmlParser로 이동).
+ * BodyTruncation 3 보존 (extractDomain/truncate는 ArticleHtmlParser로 이동).
  */
 @DisplayName("ContentExtractService 단위 테스트 (helper)")
 class ContentExtractServiceTest {
-
-  @SuppressWarnings("unused")
-  private ContentExtractService service;
-
-  @BeforeEach
-  void setUp() {
-    SsrfGuard ssrfGuard = mock(SsrfGuard.class);
-    service = new ContentExtractService(ssrfGuard);
-  }
 
   @Nested
   @DisplayName("도메인 추출 (ArticleHtmlParser)")
