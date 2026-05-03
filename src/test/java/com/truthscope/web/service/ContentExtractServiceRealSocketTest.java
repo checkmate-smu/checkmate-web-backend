@@ -15,11 +15,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * ContentExtractService 통합 테스트 — Real socket 127.0.0.1 직접 차단 시나리오. PLAN @SpringBootTest 대신 직접
- * construction 사용 (포커스 테스트 + DB 미필요로 빠른 실행).
+ * ContentExtractService Real-socket 테스트 — 127.0.0.1 직접 차단 시나리오.
+ *
+ * <p>네이밍 정책: {@code *IntegrationTest}는 {@code AbstractIntegrationTest} 상속 + Spring 컨텍스트 의무
+ * (CodeRabbit #5). 본 테스트는 Spring 컨텍스트 + DB 미필요로 직접 construction 사용 → {@code *RealSocketTest} 접미사로
+ * 분리.
  */
-@DisplayName("ContentExtractService 통합 테스트 (Real socket - 127.0.0.1 차단)")
-class ContentExtractServiceIntegrationTest {
+@DisplayName("ContentExtractService Real-socket 테스트 (127.0.0.1 차단)")
+class ContentExtractServiceRealSocketTest {
 
   private static HttpServer localServer;
 
