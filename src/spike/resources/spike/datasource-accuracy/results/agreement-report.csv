@@ -1,0 +1,10 @@
+id,url,gold_scale,pred_scale,gold_collapse,pred_collapse,exact_match,binary_collapse_match,mixed_case,hold_case,evidence_band,pass3_stability,ambiguous_flag
+G-01,https://www.newstopkorea.com/news/articleView.html?idxno=44367,-1,4,hold,supportive,false,false,false,true,strong,stable-consensus,false
+G-02,https://www.newstopkorea.com/news/articleView.html?idxno=44264,0,0,non-supportive,non-supportive,true,true,false,false,strong,stable-consensus,false
+G-03,https://www.newstopkorea.com/news/articleView.html?idxno=44215,1,0,non-supportive,non-supportive,false,true,false,false,weak,unstable-majority,false
+G-04,https://www.newstopkorea.com/news/articleView.html?idxno=44490,0,0,non-supportive,non-supportive,true,true,false,false,strong,stable-consensus,false
+G-05,https://news.sbs.co.kr/news/endPage.do?news_id=N1008516584,0,0,non-supportive,non-supportive,true,true,false,false,strong,stable-consensus,false
+G-06,https://news.sbs.co.kr/news/endPage.do?news_id=N1008493548,2,3,mixed,supportive,false,false,true,false,strong,stable-consensus,false
+G-07,https://www.newstopkorea.com/news/articleView.html?idxno=43448,3,2,supportive,mixed,false,false,true,false,strong,stable-consensus,false
+G-08,https://www.newstopkorea.com/news/articleView.html?idxno=43378,4,4,supportive,supportive,true,true,false,false,strong,stable-consensus,false
+G-09,https://www.newstopkorea.com/news/articleView.html?idxno=43081,4,4,supportive,supportive,true,true,false,false,strong,stable-consensus,false
