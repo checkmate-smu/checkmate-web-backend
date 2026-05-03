@@ -34,6 +34,7 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 뉴스 URL에서 기사 본문을 추출하는 서비스. SSRF 방어를 위해 SsrfGuard로 사전 검증 + Apache HttpClient 5의 custom DnsResolver로
@@ -60,6 +61,7 @@ public class ContentExtractService {
    * @param url 뉴스 기사 URL (http/https만 허용, 사설망/loopback/문서화 대역 차단)
    * @return 제목, 본문, 언어, 도메인이 담긴 ExtractedArticle
    */
+  @Transactional(readOnly = true)
   public ExtractedArticle extract(String url) {
     SsrfGuard.ValidatedTarget initialTarget = ssrfGuard.validateAndResolve(url);
     FetchOutcome outcome = fetchWithRedirectGuard(initialTarget);
