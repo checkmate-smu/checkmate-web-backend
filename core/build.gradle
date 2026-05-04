@@ -1,0 +1,17 @@
+// core 모듈 — Spring Boot 의존성 없음. JPA + Lombok + DTO/Entity/Converter/Exception 만.
+// ADR-006 Phase 1: Spring Data JPA Auditing 어노테이션은 compromise로 포함. Phase 2+에서 순수 JPA로 마이그레이션 검토.
+plugins {
+	id 'java-library'
+}
+
+dependencies {
+	// JPA 어노테이션 (jakarta.persistence) — Hibernate impl은 app 런타임에서 제공
+	api 'jakarta.persistence:jakarta.persistence-api'
+
+	// Bean Validation 어노테이션 — DTO @NotNull/@NotBlank 용
+	api 'jakarta.validation:jakarta.validation-api'
+
+	// Spring Data JPA Auditing (@CreatedDate, @LastModifiedDate, AuditingEntityListener)
+	// Phase 1 compromise — 이 의존만으로는 Spring Boot/IoC 미사용
+	api 'org.springframework.data:spring-data-jpa'
+}

@@ -1,1 +1,3 @@
 rootProject.name = 'truthscope-web-backend'
+
+include 'core', 'app'

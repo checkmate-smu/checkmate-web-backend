@@ -1,133 +1,106 @@
+// 루트 빌드 — 공통 설정만. 모듈별 build.gradle: core/build.gradle, app/build.gradle
 plugins {
-	id 'java'
-	id 'org.springframework.boot' version '3.5.13'
-	id 'io.spring.dependency-management' version '1.1.7'
-	id 'com.diffplug.spotless' version '8.2.1'
-	id 'checkstyle'
-	id 'com.github.spotbugs' version '6.1.11'
-	id 'jacoco'
+	id 'org.springframework.boot' version '3.5.13' apply false
+	id 'io.spring.dependency-management' version '1.1.7' apply false
+	id 'com.diffplug.spotless' version '8.2.1' apply false
+	id 'com.github.spotbugs' version '6.1.11' apply false
 }
 
-group = 'com.truthscope'
-version = '0.0.1-SNAPSHOT'
+subprojects {
+	apply plugin: 'java'
+	apply plugin: 'io.spring.dependency-management'
+	apply plugin: 'com.diffplug.spotless'
+	apply plugin: 'checkstyle'
+	apply plugin: 'com.github.spotbugs'
+	apply plugin: 'jacoco'
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(17)
-	}
-}
+	group = 'com.truthscope'
+	version = '0.0.1-SNAPSHOT'
 
-repositories {
-	mavenCentral()
-}
-
-dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
-	implementation 'org.jsoup:jsoup:1.18.3'
-	implementation 'org.apache.httpcomponents.client5:httpclient5'
-	compileOnly 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'org.postgresql:postgresql'
-	annotationProcessor 'org.projectlombok:lombok'
-
-	// Static Analysis
-	compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.3'
-
-	// Test
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-	testImplementation 'org.testcontainers:postgresql'
-	testImplementation 'org.testcontainers:junit-jupiter'
-	testCompileOnly 'org.projectlombok:lombok'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testAnnotationProcessor 'org.projectlombok:lombok'
-}
-
-// ── Spike sourceSet (throwaway research code — 평소 build에서 제외) ──
-//
-// 위치: src/spike/java/, src/spike/resources/
-// 정책: Plain Java + JUnit 5 (Spring 의존 0). Spotless 적용 / Checkstyle·SpotBugs 비활성화.
-// 실행: ./gradlew spikeTest (명시 호출 시만, ./gradlew test에는 미포함)
-// 상세: docs/spike-source-set.md (또는 CLAUDE.md ## spike sourceSet)
-sourceSets {
-	spike {
-		java { srcDirs = ['src/spike/java'] }
-		resources { srcDirs = ['src/spike/resources'] }
-		compileClasspath += sourceSets.test.runtimeClasspath
-		runtimeClasspath += sourceSets.test.runtimeClasspath
-	}
-}
-
-configurations {
-	spikeImplementation.extendsFrom testImplementation
-	spikeRuntimeOnly.extendsFrom testRuntimeOnly
-}
-
-tasks.register('spikeTest', Test) {
-	description = 'Run spike research tests (data source accuracy 검증). 평소 build에서 제외.'
-	group = 'verification'
-	testClassesDirs = sourceSets.spike.output.classesDirs
-	classpath = sourceSets.spike.runtimeClasspath
-	useJUnitPlatform()
-	shouldRunAfter test
-}
-
-// spike sourceSet은 throwaway 연구 코드 — Checkstyle/SpotBugs 비활성화
-tasks.matching { it.name in ['checkstyleSpike', 'spotbugsSpike'] }.configureEach {
-	enabled = false
-}
-
-// ── Spotless (코드 포맷) ──
-spotless {
 	java {
-		importOrder()
-		removeUnusedImports()
-		googleJavaFormat()
+		toolchain {
+			languageVersion = JavaLanguageVersion.of(17)
+		}
 	}
-}
 
-// ── Checkstyle (코딩 규칙) ──
-checkstyle {
-	toolVersion = '10.25.0'
-	configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
-	maxWarnings = 0
-}
-
-// 테스트 코드는 Checkstyle 제외 (테스트 메서드명 snake_case 허용)
-tasks.named('checkstyleTest') {
-	enabled = false
-}
-
-// ── SpotBugs (버그 탐지) ──
-spotbugs {
-	toolVersion = '4.9.3'
-	effort = 'max'
-	reportLevel = 'medium'
-}
-
-tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
-	reports {
-		html.required = true
-		xml.required = false
+	repositories {
+		mavenCentral()
 	}
-}
 
-// ── JaCoCo (테스트 커버리지) ──
-jacocoTestReport {
-	dependsOn test
-	reports {
-		xml.required = true
-		html.required = true
+	tasks.withType(JavaCompile).configureEach {
+		options.encoding = 'UTF-8'
 	}
-}
+	tasks.withType(Test).configureEach {
+		systemProperty 'file.encoding', 'UTF-8'
+	}
 
-tasks.named('test') {
-	useJUnitPlatform()
-	finalizedBy jacocoTestReport
+	dependencyManagement {
+		imports {
+			mavenBom 'org.springframework.boot:spring-boot-dependencies:3.5.13'
+		}
+	}
+
+	dependencies {
+		// Lombok — 모든 모듈 공통
+		compileOnly 'org.projectlombok:lombok'
+		annotationProcessor 'org.projectlombok:lombok'
+		testCompileOnly 'org.projectlombok:lombok'
+		testAnnotationProcessor 'org.projectlombok:lombok'
+
+		// SpotBugs annotations — 모든 모듈 공통
+		compileOnly 'com.github.spotbugs:spotbugs-annotations:4.9.3'
+
+		// JUnit 5 — 모든 모듈 공통
+		testImplementation 'org.junit.jupiter:junit-jupiter'
+		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+	}
+
+	// ── Spotless (코드 포맷) ──
+	spotless {
+		java {
+			importOrder()
+			removeUnusedImports()
+			googleJavaFormat()
+		}
+	}
+
+	// ── Checkstyle (코딩 규칙) ──
+	checkstyle {
+		toolVersion = '10.25.0'
+		configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+		maxWarnings = 0
+	}
+
+	// 테스트 코드는 Checkstyle 제외 (테스트 메서드명 snake_case 허용)
+	tasks.named('checkstyleTest') {
+		enabled = false
+	}
+
+	// ── SpotBugs (버그 탐지) ──
+	spotbugs {
+		toolVersion = '4.9.3'
+		effort = 'max'
+		reportLevel = 'medium'
+	}
+
+	tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
+		reports {
+			html.required = true
+			xml.required = false
+		}
+	}
+
+	// ── JaCoCo (테스트 커버리지) ──
+	jacocoTestReport {
+		dependsOn test
+		reports {
+			xml.required = true
+			html.required = true
+		}
+	}
+
+	tasks.named('test') {
+		useJUnitPlatform()
+		finalizedBy jacocoTestReport
+	}
 }
