@@ -26,36 +26,5 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter'
 }
 
-// ── Spike sourceSet (throwaway research code — 평소 build에서 제외) ──
-//
-// 위치: app/src/spike/java/, app/src/spike/resources/
-// 정책: Plain Java + JUnit 5 (Spring 의존 0). Spotless 적용 / Checkstyle·SpotBugs 비활성화.
-// 실행: ./gradlew :app:spikeTest (명시 호출 시만, ./gradlew test 에는 미포함)
-// 상세: backend CLAUDE.md ## spike sourceSet 섹션
-sourceSets {
-	spike {
-		java { srcDirs = ['src/spike/java'] }
-		resources { srcDirs = ['src/spike/resources'] }
-		compileClasspath += sourceSets.test.runtimeClasspath
-		runtimeClasspath += sourceSets.test.runtimeClasspath
-	}
-}
-
-configurations {
-	spikeImplementation.extendsFrom testImplementation
-	spikeRuntimeOnly.extendsFrom testRuntimeOnly
-}
-
-tasks.register('spikeTest', Test) {
-	description = 'Run spike research tests (data source accuracy 검증). 평소 build에서 제외.'
-	group = 'verification'
-	testClassesDirs = sourceSets.spike.output.classesDirs
-	classpath = sourceSets.spike.runtimeClasspath
-	useJUnitPlatform()
-	shouldRunAfter test
-}
-
-// spike sourceSet은 throwaway 연구 코드 — Checkstyle/SpotBugs 비활성화
-tasks.matching { it.name in ['checkstyleSpike', 'spotbugsSpike'] }.configureEach {
-	enabled = false
-}
+// throwaway 연구 코드(spike)는 워크스페이스 레벨 `truthscope-web/spike/` 독립 Java 프로젝트로 분리됨 (2026-05-04).
+// 이전 `app/src/spike/` sourceSet 제거 — BE 빌드 파이프라인과 단절. 상세는 spike/README.md 및 BE CLAUDE.md.
