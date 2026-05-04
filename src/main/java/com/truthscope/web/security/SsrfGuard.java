@@ -103,8 +103,22 @@ public class SsrfGuard {
       throw new BadRequestException("유효하지 않은 URL 형식입니다");
     }
 
-    for (InetAddress addr : addrs) {
-      InetAddress effectiveAddr = unmapIpv4MappedIpv6(addr);
+    InetAddress[] approvedAddrs = checkAndPinAddresses(host, addrs);
+    // R4-1 fix: ValidatedTarget.host는 normalized form (brackets 제외) - PinnedDnsResolver 정합
+    return new ValidatedTarget(uri, normalizedHost, scheme, uri.getPort(), approvedAddrs);
+  }
+
+  /**
+   * 각 해석 주소에 deny CIDR 매칭을 적용하고, pinning에 쓸 정규화된(unmapped) 주소 배열을 반환한다.
+   *
+   * <p>CodeRabbit PR#40: 매칭은 unmapped 주소로 하면서 pinning은 원본을 저장하면 ::ffff:x.x.x.x 케이스에서 승인 판정과
+   * PinnedDnsResolver 비교 기준이 어긋나 정상 요청도 rebinding으로 오인된다. 두 기준을 unmapped로 통일.
+   */
+  private InetAddress[] checkAndPinAddresses(String host, InetAddress[] addrs) {
+    InetAddress[] approvedAddrs = new InetAddress[addrs.length];
+    for (int i = 0; i < addrs.length; i++) {
+      InetAddress effectiveAddr = unmapIpv4MappedIpv6(addrs[i]);
+      approvedAddrs[i] = effectiveAddr;
       String ipString = effectiveAddr.getHostAddress();
       for (IpAddressMatcher matcher : denyMatchers) {
         if (matcher.matches(ipString)) {
@@ -114,8 +128,7 @@ public class SsrfGuard {
         }
       }
     }
-    // R4-1 fix: ValidatedTarget.host는 normalized form (brackets 제외) - PinnedDnsResolver 정합
-    return new ValidatedTarget(uri, normalizedHost, scheme, uri.getPort(), addrs);
+    return approvedAddrs;
   }
 
   /** Test seam - Mockito @Spy로 override 가능 (DNS rebinding 시나리오 등). */

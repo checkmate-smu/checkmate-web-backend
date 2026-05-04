@@ -85,6 +85,13 @@ public final class ArticleHtmlParser {
     if (text.length() <= MAX_BODY_LENGTH) {
       return text;
     }
-    return text.substring(0, MAX_BODY_LENGTH);
+    int end = MAX_BODY_LENGTH;
+    // CodeRabbit PR#40: surrogate pair 경계 보정 (이모지/보조평면 문자가 절단되지 않도록).
+    if (Character.isHighSurrogate(text.charAt(end - 1))
+        && end < text.length()
+        && Character.isLowSurrogate(text.charAt(end))) {
+      end--;
+    }
+    return text.substring(0, end);
   }
 }

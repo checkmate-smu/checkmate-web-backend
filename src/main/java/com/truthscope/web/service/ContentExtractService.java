@@ -160,16 +160,11 @@ public class ContentExtractService {
         throw new ExtractionFailedException("기사를 가져올 수 없습니다: " + initialUri);
       }
       Charset charset = extractCharset(entity);
-      try {
-        byte[] body = readBoundedBytes(entity.getContent(), MAX_FETCH_BYTES, initialUri);
+      // CodeRabbit PR#40: 5MB cap 초과 시 EntityUtils.consume()으로 본문을 끝까지 다시 읽으면
+      // 사실상 cap이 무력화된다. try-with-resources로 스트림만 닫고 fail-fast.
+      try (InputStream content = entity.getContent()) {
+        byte[] body = readBoundedBytes(content, MAX_FETCH_BYTES, initialUri);
         return FetchResult.body(body, charset);
-      } catch (ExtractionFailedException e) {
-        try {
-          EntityUtils.consume(entity);
-        } catch (IOException ignored) {
-          // best-effort cleanup
-        }
-        throw e;
       }
     }
 
