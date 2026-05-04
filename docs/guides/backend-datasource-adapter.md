@@ -1,26 +1,46 @@
 # Backend DataSourceAdapter Scaffold Reference
 
-> **목적**: BE #22 (DataSourceAdapter 인터페이스 + MockDataSourceAdapter) Week 2 구현 시 한지민이 그대로 따라 작성할 수 있도록 PM 사전 작성한 reference.
-> **선행 의무**: 본 가이드의 "권고 시그니처 (§3)" finalize 전에 PM과 1회 협의. 본 인터페이스는 S3a/b 어댑터 + S7 GDELT 어댑터의 베이스라 시그니처 변경 시 후속 영향 큼 (이슈 본문 "주의사항" 참조).
+> **목적**: BE #22 Week 2 코드 진입(5/11~5/17) 시 본 가이드 §3-§7만 보고 그대로 작성 → 4시간 안에 PR 머지 가능한 self-contained reference. 한지민(BE 담당)용.
 > **이슈**: <https://github.com/truthscope-smu/truthscope-web-backend/issues/22>
-> **관련 ADR**: [ADR-006 core/app 분리](../../../context/decisions/ADR-006-core-app-separation.md)
+> **변경 필요 시**: 본 가이드 시그니처(§3) 또는 모듈 배치(§2)를 변경하려면 PM(권석)에게 코멘트 핑. S3a/b/S7 후속 어댑터 베이스라 수정 시 후속 영향 큼.
 
 ---
 
-## 1. 개요
+## 0. 용어 1분 정리
 
-`DataSourceAdapter`는 외부 검증 데이터 소스(BigKinds / KOSIS / 정책브리핑 / GDELT 등)를 추상화하는 핵심 인터페이스다. ADR-006의 D1(OSS 공개) + D3(재현성) 원칙을 구조적으로 보장한다.
+본 가이드/이슈에 등장하는 본 팀 약어. 처음 보면 본 섹션만 읽고 진행:
+
+| 약어 | 풀이 |
+|---|---|
+| **BE #22 / S2-01** | 본 이슈. Sprint 2의 첫 번째 이슈 (S2-01 = Sprint 2 Issue 01) |
+| **BE #23** | 직전 머지된 이슈 — Gradle `core` / `app` 모듈 분리 (PR #41/#42, 2026-05-04 main 반영) |
+| **S3a / S3b / S7** | 후속 데이터 소스 어댑터 이슈 — S3a 정책브리핑, S3b KOSIS, S7 GDELT. 본 인터페이스를 베이스로 작성됨 |
+| **ADR** | Architecture Decision Record. `truthscope-web/context/decisions/ADR-NNN-*.md`에 결정 + 근거 박제. **ADR-006** = core/app 모듈 분리 결정 |
+| **D1 / D3** | ADR-006의 핵심 원칙. **D1** = "core 로직을 OSS로 공개해 외부에서 단독 사용 가능", **D3** = "같은 입력 → 같은 출력 재현성" |
+| **OCP** | Open-Closed Principle. "새 어댑터 추가해도 기존 파이프라인 수정 최소화" — 인터페이스 추상화의 핵심 가치 |
+| **OSS** | Open Source Software. core 모듈을 jar로 배포해 외부 개발자가 사용 가능하게 만드는 비전 |
+| **core / app 모듈** | BE #23로 분리된 Gradle subproject. **core** = Spring DI/Web 어노테이션 없음(jar 단독 배포 가능), **app** = Spring Boot 웹앱(컨트롤러/DI/HTTP) |
+| **Tier 1 cascade** | 3-Tier 검증 파이프라인의 1차 (외부 데이터소스 직접 매칭). 본 인터페이스가 Tier 1의 진입점 추상화 |
+| **SsrfGuard** | Server-Side Request Forgery 차단기. 외부 URL을 fetch할 때 사설 IP/내부망으로의 요청을 막는다. Phase 20에서 도입(`.plans/20-ssrf-blocker/`). 후속 어댑터에서 외부 URL 호출 시 의무 호출 |
+| **DDD aggregate** | Domain-Driven Design의 "aggregate root" 패턴. invariant(불변 조건)을 정적 팩토리에서 검증, setter 금지. Phase 21 도입(Article entity reference) |
+| **fixture** | 테스트용 고정 데이터. 외부 API 호출 없이 동일 결과 재현 (D3 원칙) |
+
+---
+
+## 1. 본 어댑터의 비전 (왜 만드나)
+
+`DataSourceAdapter`는 외부 검증 데이터 소스(BigKinds / KOSIS / 정책브리핑 / GDELT 등)를 추상화하는 핵심 인터페이스다.
 
 | 비전 | 설명 |
 |---|---|
-| OCP (개방-폐쇄) | `DataSourceAdapter`를 교체해도 `VerificationPipeline` 코드 수정 불필요 |
-| OSS 단독 배포 | 인터페이스는 `core` 모듈 (Spring 의존 0) → 외부에서 `truthscope-verification-core` jar로 사용 가능 |
-| 재현성 (D3) | 구현체별로 fixture 메서드 제공 → 외부 API 없이도 동일 결과 재현 |
+| OCP | `DataSourceAdapter` 구현체를 추가/교체해도 `VerificationPipeline` 코드 수정 불필요 |
+| OSS 단독 배포 | 인터페이스를 `core` 모듈에 두면 (Spring DI 없음) 외부에서 `truthscope-verification-core.jar` 단독 사용 가능 |
+| 재현성 (D3) | 구현체별 `fixture()` 메서드 → 외부 API 없이 deterministic 결과 |
 | 테스트 용이성 | `MockDataSourceAdapter`로 통합 테스트 + Spring Context 없이 단위 테스트 |
 
 ---
 
-## 2. 모듈 배치 (BE #23 Phase 1 후속 정합)
+## 2. 모듈 배치
 
 | 심볼 | 모듈 | 패키지 |
 |---|---|---|
@@ -33,50 +53,60 @@
 | `MockDataSourceAdapter` (구현) | **app** | `com.truthscope.web.adapter.datasource` |
 | 테스트 | **app** | `com.truthscope.web.adapter.datasource` (test sourceSet) |
 
-> **이유**: ADR-006에 따라 인터페이스 + 도메인 record는 Spring 무관 → core. HTTP 호출/Spring DI/외부 API 키 사용은 app.
-> **생성 명령**: 패키지 디렉토리는 미존재 — 신규 작성 시 `core/src/main/java/com/truthscope/web/adapter/datasource/` 직접 생성.
+**왜 이렇게**:
+- core 모듈은 `spring-data-jpa` API 의존만 가지고 있고 Spring DI/Web 어노테이션은 없음 (BE #23 Phase 1 결정 — 메모리 `project_phase23_be_done.md` 참조). `@Component` 같은 DI 어노테이션을 쓰는 코드는 core에 못 둠 → app으로
+- record + interface는 Spring 무관이라 core에 그대로 둘 수 있음
+
+**디렉토리 신설**: 패키지 디렉토리는 미존재 — 신규 작성 시 직접 생성.
+- `core/src/main/java/com/truthscope/web/adapter/datasource/`
+- `app/src/main/java/com/truthscope/web/adapter/datasource/`
+- `app/src/test/java/com/truthscope/web/adapter/datasource/`
 
 ---
 
-## 3. 권고 시그니처 (PM 협의 후 finalize)
+## 3. 확정 시그니처 (Week 2 구현 기준)
 
-본 시그니처는 PM 사전 작성 권고안이다. **Week 2 코드 진입 전 PM과 1회 협의 후 finalize**한다 (이슈 본문 "주의사항" 강제 사항).
+> 본 시그니처는 PM이 BE #22 이슈 본문 + ADR-006 비전 + 후속 어댑터 (S3a/b/S7) 호환성을 검토해 finalize한 결정. **변경 필요 시 PM 핑** (체크리스트 §3.3 참조).
 
 ### 3.1 인터페이스
+
+`core/src/main/java/com/truthscope/web/adapter/datasource/DataSourceAdapter.java`
 
 ```java
 package com.truthscope.web.adapter.datasource;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
  * 외부 검증 데이터 소스 추상화 (Tier 1 cascade의 1차 진입점).
  *
- * <p>구현 예: {@link com.truthscope.web.adapter.datasource.MockDataSourceAdapter} (app),
- * 향후 BigKindsAdapter / KosisAdapter / PolicyBriefingAdapter / GdeltAdapter (모두 app).
+ * <p>구현 예: MockDataSourceAdapter (app, 테스트/로컬 dev 용도). 향후 BigKindsAdapter /
+ * KosisAdapter / PolicyBriefingAdapter / GdeltAdapter (모두 app 모듈).
  *
- * <p>본 인터페이스 + 의존 record는 Spring 무관 (core 모듈). HTTP/DI/API 키 의존은 구현체에서 처리.
+ * <p>본 인터페이스 + 의존 record는 Spring 무관 (core 모듈에 위치). HTTP/DI/API 키
+ * 의존은 구현체에서 처리한다.
  */
 public interface DataSourceAdapter {
 
   /**
    * 외부 데이터 소스 호출.
    *
-   * @param query 검색 쿼리 (keyword, lang, dateRange 등)
+   * @param query 검색 쿼리 (keyword/lang/dateRange 등)
    * @return raw 응답 (body string + status + format)
-   * @throws IllegalArgumentException query가 null 또는 invalid invariant 위반
-   * @throws java.io.IOException 외부 네트워크 오류
+   * @throws IllegalArgumentException query가 null
+   * @throws IOException 외부 네트워크 오류
    */
-  RawResponse fetch(AdapterQuery query) throws java.io.IOException;
+  RawResponse fetch(AdapterQuery query) throws IOException;
 
   /**
-   * raw 응답 → 정규화된 Claim 리스트.
+   * raw 응답을 ExtractedClaim 리스트로 정규화.
    *
-   * <p>구현체는 JSON/XML/HTML 등 source format 구애받지 않고 ExtractedClaim record로 정규화한다.
+   * <p>구현체는 JSON/XML/HTML 등 source format에 구애받지 않고 ExtractedClaim record로 정규화한다.
    *
-   * @param rawResponse {@link #fetch(AdapterQuery)}의 반환값
-   * @return ExtractedClaim 리스트 (응답이 비어있으면 empty list)
-   * @throws IllegalArgumentException rawResponse가 null 또는 parse 불가
+   * @param rawResponse fetch 반환값
+   * @return ExtractedClaim 리스트 (응답이 비어있으면 빈 리스트)
+   * @throws IllegalArgumentException rawResponse가 null
    */
   List<ExtractedClaim> parse(RawResponse rawResponse);
 
@@ -95,34 +125,37 @@ public interface DataSourceAdapter {
   AdapterMetadata metadata();
 
   /**
-   * 테스트용 고정 fixture (외부 API 호출 없이 결과 재현).
+   * 테스트용 고정 fixture (외부 API 호출 없이 결과 재현 — D3 재현성).
    *
-   * <p>D3 재현성 원칙 — core 단독 검증 시 본 메서드로 deterministic 결과 보장.
-   *
-   * @return 고정 ExtractedClaim 리스트 (구현체별 5건 이상 권장)
+   * @return 고정 ExtractedClaim 리스트 (구현체별 5건 이상)
    */
   List<ExtractedClaim> fixture();
 }
 ```
 
-### 3.2 의존 record (모두 core)
+### 3.2 의존 record (모두 core 모듈)
+
+`core/src/main/java/com/truthscope/web/adapter/datasource/AdapterQuery.java`
 
 ```java
 package com.truthscope.web.adapter.datasource;
 
-import java.time.Instant;
 import java.time.LocalDate;
 
 /**
  * 검색 쿼리 값 객체.
  *
+ * <p>MVP 검증 범위: keyword/limit. lang/fromDate/toDate는 구현체별 의미가 다를 수 있어 invariant 강제하지
+ * 않고 nullable 허용 (ISO 639-1 권장 / null=제한 없음).
+ *
  * @param keyword 검색 키워드 (null/blank 금지)
- * @param lang ISO 639-1 (예: "ko", "en")
- * @param fromDate 검색 시작일 (inclusive, nullable = 전체)
- * @param toDate 검색 종료일 (inclusive, nullable = 전체)
+ * @param lang ISO 639-1 권장 (예: "ko", "en"), nullable 허용
+ * @param fromDate 검색 시작일 (inclusive, nullable=전체)
+ * @param toDate 검색 종료일 (inclusive, nullable=전체)
  * @param limit 최대 결과 건수 (1-100)
  */
-public record AdapterQuery(String keyword, String lang, LocalDate fromDate, LocalDate toDate, int limit) {
+public record AdapterQuery(
+    String keyword, String lang, LocalDate fromDate, LocalDate toDate, int limit) {
   public AdapterQuery {
     if (keyword == null || keyword.isBlank()) {
       throw new IllegalArgumentException("keyword는 null/blank 금지");
@@ -134,20 +167,22 @@ public record AdapterQuery(String keyword, String lang, LocalDate fromDate, Loca
 }
 ```
 
+`core/src/main/java/com/truthscope/web/adapter/datasource/RawResponse.java`
+
 ```java
 package com.truthscope.web.adapter.datasource;
 
 /**
  * 외부 API raw 응답 값 객체.
  *
- * @param body 응답 본문 (JSON/XML/HTML 문자열)
+ * @param body 응답 본문 (JSON/XML/HTML 문자열, 빈 문자열 허용)
  * @param statusCode HTTP status
- * @param format "JSON" / "XML" / "HTML"
+ * @param format "JSON" / "XML" / "HTML" (대소문자 구별, 후속에서 enum 승격 검토)
  */
 public record RawResponse(String body, int statusCode, String format) {
   public RawResponse {
     if (body == null) {
-      throw new IllegalArgumentException("body는 null 금지 (empty string은 허용)");
+      throw new IllegalArgumentException("body는 null 금지 (빈 문자열은 허용)");
     }
     if (format == null || format.isBlank()) {
       throw new IllegalArgumentException("format 필수");
@@ -155,6 +190,8 @@ public record RawResponse(String body, int statusCode, String format) {
   }
 }
 ```
+
+`core/src/main/java/com/truthscope/web/adapter/datasource/ExtractedClaim.java`
 
 ```java
 package com.truthscope.web.adapter.datasource;
@@ -164,9 +201,12 @@ import java.time.Instant;
 /**
  * 정규화된 Claim 값 객체.
  *
+ * <p>MVP 검증 범위: claimText/extractedAt 필수. sourceUrl은 nullable 허용 (외부 fixture에서 출처
+ * 부재할 수 있음), lang은 ISO 639-1 권장이지만 invariant 미강제.
+ *
  * @param claimText Claim 본문 (null/blank 금지)
- * @param sourceUrl 출처 URL (http(s), nullable = unknown)
- * @param lang ISO 639-1
+ * @param sourceUrl 출처 URL (http(s) 권장, nullable)
+ * @param lang ISO 639-1 (예: "ko", "en")
  * @param extractedAt 추출 시각
  */
 public record ExtractedClaim(String claimText, String sourceUrl, String lang, Instant extractedAt) {
@@ -180,6 +220,8 @@ public record ExtractedClaim(String claimText, String sourceUrl, String lang, In
   }
 }
 ```
+
+`core/src/main/java/com/truthscope/web/adapter/datasource/HealthStatus.java`
 
 ```java
 package com.truthscope.web.adapter.datasource;
@@ -198,6 +240,9 @@ public record HealthStatus(String status, long latencyMs, Instant checkedAt) {
     if (!"UP".equals(status) && !"DOWN".equals(status)) {
       throw new IllegalArgumentException("status는 UP/DOWN 둘 중 하나");
     }
+    if (checkedAt == null) {
+      throw new IllegalArgumentException("checkedAt 필수");
+    }
   }
 
   public static HealthStatus up(long latencyMs) {
@@ -209,6 +254,8 @@ public record HealthStatus(String status, long latencyMs, Instant checkedAt) {
   }
 }
 ```
+
+`core/src/main/java/com/truthscope/web/adapter/datasource/AdapterMetadata.java`
 
 ```java
 package com.truthscope.web.adapter.datasource;
@@ -233,18 +280,22 @@ public record AdapterMetadata(String name, String version, boolean isPaid, Strin
 }
 ```
 
-### 3.3 협의 사항 체크리스트 (PM과 finalize 시)
+### 3.3 PM 결정값 (변경 시 PM 핑)
 
-- [ ] `fetch`가 `IOException` throw 적정한가, 또는 sealed `FetchException` wrapper로 래핑할 것인가
-- [ ] `AdapterQuery.lang`이 String인가, 또는 enum (`Language`)인가
-- [ ] `RawResponse.format`이 String인가, 또는 enum (`ResponseFormat`)인가
-- [ ] `ExtractedClaim`에 추가 필드 필요한가 (예: `confidenceScore`, `originalLang`)
-- [ ] `health`가 동기인가, async (`CompletableFuture<HealthStatus>`)인가 — Mock은 동기로 충분
-- [ ] `fixture`가 항상 non-empty가 invariant인가, 또는 빈 리스트 허용인가
+| 결정 사항 | 값 | 변경 영향 |
+|---|---|---|
+| `fetch` 예외 | `IOException` throw + `IllegalArgumentException`(null query) | 후속 어댑터가 같은 시그니처 따라야 함 |
+| `AdapterQuery.lang` 타입 | `String` (ISO 639-1 권장, invariant 미강제) | enum 승격 시 모든 어댑터 호출부 수정 |
+| `RawResponse.format` 타입 | `String` ("JSON"/"XML"/"HTML") | 동상 |
+| `ExtractedClaim` 필드 | text/sourceUrl/lang/extractedAt 4개 (MVP) | 추가 필드 시 fixture 5건 모두 갱신 |
+| `health` 동기/async | **동기** (Mock은 즉시, 외부 어댑터는 timeout 짧게) | async 전환 시 cascade orchestrator 영향 |
+| `fixture` 최소 건수 | **5건** (수용 기준 정합) | 변경 시 본 가이드 + 이슈 본문 동시 수정 |
 
 ---
 
-## 4. MockDataSourceAdapter 구현 골격
+## 4. MockDataSourceAdapter 구현 코드
+
+`app/src/main/java/com/truthscope/web/adapter/datasource/MockDataSourceAdapter.java`
 
 ```java
 package com.truthscope.web.adapter.datasource;
@@ -257,6 +308,9 @@ import org.springframework.stereotype.Component;
  * 테스트/로컬 환경용 목 어댑터.
  *
  * <p>외부 API 호출 없이 fixture 5건 반환. 통합 테스트 + 로컬 개발 시 사용.
+ *
+ * <p>{@code @Component}는 Spring DI 어노테이션이라 본 클래스는 app 모듈에만 위치 가능 (core에는
+ * spring-context 없음).
  */
 @Component
 public class MockDataSourceAdapter implements DataSourceAdapter {
@@ -328,13 +382,13 @@ public class MockDataSourceAdapter implements DataSourceAdapter {
 }
 ```
 
-> **주의**: `@Component`는 Spring DI 어노테이션이라 Mock은 app 모듈에 둔다. core 모듈에 두면 컴파일 실패 (core/build.gradle에 spring-context 없음).
-
 ---
 
-## 5. 테스트 5+ cases 골격
+## 5. 테스트 코드 (10 cases)
 
 위치: `app/src/test/java/com/truthscope/web/adapter/datasource/MockDataSourceAdapterTest.java`
+
+수용 기준 "5+ cases" 초과 — happy/null query/empty response/parse null + health UP/DOWN factory + metadata/fixture invariant 등 10건.
 
 ```java
 package com.truthscope.web.adapter.datasource;
@@ -424,13 +478,22 @@ class MockDataSourceAdapterTest {
   class Health {
 
     @Test
-    @DisplayName("Mock은 항상 UP")
-    void alwaysUp() {
+    @DisplayName("Mock adapter는 UP")
+    void mockAdapterUp() {
       HealthStatus status = adapter.health();
 
       assertThat(status.status()).isEqualTo("UP");
       assertThat(status.latencyMs()).isGreaterThanOrEqualTo(0);
       assertThat(status.checkedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("HealthStatus.down() factory → DOWN/-1ms")
+    void downFactory() {
+      HealthStatus down = HealthStatus.down();
+
+      assertThat(down.status()).isEqualTo("DOWN");
+      assertThat(down.latencyMs()).isEqualTo(-1);
     }
   }
 
@@ -439,7 +502,7 @@ class MockDataSourceAdapterTest {
   class Metadata {
 
     @Test
-    @DisplayName("name=Mock, isPaid=false")
+    @DisplayName("name=Mock, isPaid=false, provider=internal")
     void mockMetadata() {
       AdapterMetadata metadata = adapter.metadata();
 
@@ -463,7 +526,7 @@ class MockDataSourceAdapterTest {
     }
 
     @Test
-    @DisplayName("모든 fixture가 invariant 만족 (claimText non-blank)")
+    @DisplayName("모든 fixture가 invariant 만족 (claimText non-blank + extractedAt non-null)")
     void allInvariantSatisfied() {
       List<ExtractedClaim> claims = adapter.fixture();
 
@@ -473,116 +536,146 @@ class MockDataSourceAdapterTest {
 }
 ```
 
-> **테스트 패턴**: `@Nested` 그룹화 + AssertJ + DisplayName 한국어. AbstractIntegrationTest 상속 불필요 (Spring Context 미사용).
-> **수용 기준 매핑**: 위 8 cases가 BE #22 "단위 테스트 5+ cases (happy / null query / empty response / parse error / health fail)" 충족 + 추가 metadata / fixture invariant.
+> **테스트 패턴**: `@Nested`로 메서드별 그룹화 + AssertJ + 한국어 `@DisplayName`. **`AbstractIntegrationTest` 상속 불필요** — Spring Context 안 띄우는 순수 단위 테스트.
 
 ---
 
-## 6. ArchUnit 룰 정합
+## 6. ArchUnit 룰
 
-기존 `app/src/test/java/com/truthscope/web/architecture/ArchitectureTest.java`의 `entityShouldNotExposeSetters` 룰은 entity 패키지에만 적용. 본 어댑터는 별도 룰 불필요 (record는 immutable, MockDataSourceAdapter는 setter 없음).
+기존 `app/src/test/java/com/truthscope/web/architecture/ArchitectureTest.java`의 `entityShouldNotExposeSetters` 룰은 entity 패키지에만 적용. 본 어댑터는 record(immutable) + Mock(setter 없음)이라 별도 룰 추가 불필요.
 
-> **F9 (HANDOFF 박제)**: core ArchUnit 룰 (`com.truthscope.web.entity..` → `com.truthscope.web.controller..` 의존 금지 등) 추가는 별도 30분 작업으로 deferred.
+> 참고: core 모듈 자체에 ArchUnit 룰(`com.truthscope.web.entity..` → `com.truthscope.web.controller..` 의존 금지 등)은 별도 30분 작업으로 deferred (HANDOFF F9). Week 2 진입 시 영향 없음.
 
 ---
 
-## 7. 구현 단계 (한지민 Week 2 follow)
+## 7. 한지민 Week 2 follow (6단계, ~2.5h)
 
-> **Week 1 (5/4~5/10) 선행**: API key 신청 (S3a 정책뉴스 + S3a' 보도자료 + S3b KOSIS) — 이슈 본문 "Week 1 할 일" 참조. **본 가이드는 Week 2 코드 진입 단계 안내.**
+> **Week 1 (5/4~5/10) 선행**: API key 신청 (S3a 정책뉴스 + S3a' 보도자료 + S3b KOSIS) — 이슈 본문 "Week 1 할 일" 참조. **본 단계는 Week 2 코드 진입 후 따라 한다.**
 
-### Step 1 — 시그니처 협의 (PM과 1회, 30분)
+### Step 1 — 브랜치 생성 (5분)
 
-- 본 가이드 §3.3 체크리스트 6건 결정
-- 변경 사항이 있으면 본 가이드 patch + commit
-
-### Step 2 — 브랜치 + core 인터페이스 (45분)
+PowerShell 또는 Git Bash에서:
 
 ```bash
-cd checkmate-web-backend          # 또는 truthscope-web-backend (rename 후)
-git checkout dev && git pull origin dev
+cd truthscope-web-backend
+git checkout dev
+git pull origin dev
 git checkout -b feat/S2-01-datasource-adapter
-
-# core 패키지 신설
-mkdir -p core/src/main/java/com/truthscope/web/adapter/datasource
-
-# 본 가이드 §3.1, §3.2 코드를 그대로 복사
-# 파일: DataSourceAdapter.java + AdapterQuery.java + RawResponse.java
-#       + ExtractedClaim.java + HealthStatus.java + AdapterMetadata.java
 ```
 
-### Step 3 — app 구현 (15분)
+### Step 2 — core 인터페이스 + record 6개 (45분)
+
+```bash
+mkdir -p core/src/main/java/com/truthscope/web/adapter/datasource
+```
+
+본 가이드 §3.1, §3.2 코드를 그대로 복사:
+- `DataSourceAdapter.java`
+- `AdapterQuery.java`
+- `RawResponse.java`
+- `ExtractedClaim.java`
+- `HealthStatus.java`
+- `AdapterMetadata.java`
+
+### Step 3 — app Mock 구현 (15분)
 
 ```bash
 mkdir -p app/src/main/java/com/truthscope/web/adapter/datasource
-
-# 본 가이드 §4 코드를 그대로 복사
-# 파일: MockDataSourceAdapter.java
 ```
+
+본 가이드 §4 코드를 `MockDataSourceAdapter.java`로 그대로 복사.
 
 ### Step 4 — 테스트 (30분)
 
 ```bash
 mkdir -p app/src/test/java/com/truthscope/web/adapter/datasource
-
-# 본 가이드 §5 코드를 그대로 복사
-# 파일: MockDataSourceAdapterTest.java
 ```
+
+본 가이드 §5 코드를 `MockDataSourceAdapterTest.java`로 그대로 복사.
 
 ### Step 5 — 로컬 검증 (15분)
 
+CLAUDE.md "PR 전 필수 로컬 검사" 순서 그대로:
+
 ```bash
-./gradlew :core:build
-./gradlew :app:spotlessApply
-./gradlew :app:checkstyleMain
-./gradlew :app:spotbugsMain
-./gradlew :app:test --tests "*MockDataSourceAdapter*"
-./gradlew :app:test
-./gradlew :app:build
+./gradlew spotlessApply
+./gradlew checkstyleMain
+./gradlew spotbugsMain
+./gradlew test --tests "*MockDataSourceAdapter*"
+./gradlew test
+./gradlew build
 ```
 
-전부 PASS 후 commit:
+전부 PASS여야 commit 단계로 진입.
+
+> **순서 중요**: spotlessApply가 가장 먼저 (Google Java Format 자동 적용). 코드를 직접 수정한 적 없는 record/interface도 spotless가 한 줄 띄어쓰기/import order 등을 정리할 수 있다.
+
+### Step 6 — Commit + Push + PR (~1h, CodeRabbit 대기 포함)
+
+CONVENTIONS.md commit 규칙 정합 (Gitmoji + Co-authored-by 본인):
 
 ```bash
 git add core app
-git commit -m "$(cat <<'EOF'
-✨feat(adapter): DataSourceAdapter 인터페이스 + MockDataSourceAdapter (S2-01)
-
-- core: DataSourceAdapter interface + 5 record (AdapterQuery / RawResponse /
-  ExtractedClaim / HealthStatus / AdapterMetadata) — Spring 무관, OSS 배포 가능
-- app: MockDataSourceAdapter @Component (fixture 5건) — 통합 테스트/로컬 dev 용도
-- test: 9 cases 통과 (fetch happy/null + parse empty/null/fixtures + health + metadata + fixture invariant 2)
-
-closes #22
-
-Co-authored-by: gs07103 <gwonseok02@gmail.com>
-EOF
-)"
+git commit -m "✨feat(adapter): DataSourceAdapter 인터페이스 + MockDataSourceAdapter (S2-01)" -m "- core: DataSourceAdapter interface + 5 record (AdapterQuery / RawResponse / ExtractedClaim / HealthStatus / AdapterMetadata) — Spring DI 무관, OSS 배포 가능" -m "- app: MockDataSourceAdapter @Component (fixture 5건) — 통합 테스트/로컬 dev 용도" -m "- test: 10 cases 통과 (fetch happy/null + parse empty/null/fixtures + health UP/DOWN factory + metadata + fixture invariant 2)" -m "" -m "closes #22" -m "" -m "Co-authored-by: 한지민 <한지민-이메일>"
+git push -u origin feat/S2-01-datasource-adapter
 ```
 
-### Step 6 — PR + CodeRabbit (~30분 대기)
+> **Windows PowerShell 사용 시**: `&&` 대신 줄을 분리해 한 줄씩 실행. `git commit -m "..." -m "..."`는 PowerShell에서도 동일하게 작동.
+
+PR 생성 (gh CLI):
 
 ```bash
-git push -u origin feat/S2-01-datasource-adapter
-gh pr create --base dev --title "✨feat(adapter): DataSourceAdapter 인터페이스 + MockDataSourceAdapter (S2-01)" --body "..."
+gh pr create --base dev --title "✨feat(adapter): DataSourceAdapter 인터페이스 + MockDataSourceAdapter (S2-01)"
 ```
 
-PR description에 학습 가치 1줄 명시 (이슈 수용 기준):
+`--body` 생략하면 editor 열림. 다음 템플릿을 본문으로 입력:
 
-> Spring 무관 인터페이스(core) + Spring DI 구현(app) 분리로 ADR-006 OCP/OSS 비전을 첫 어댑터로 실증.
+```markdown
+## Summary
 
-CodeRabbit Critical 0이면 PM에게 코멘트로 머지 승인 요청.
+closes #22. ADR-006 OCP/D3 비전을 첫 어댑터로 실증 — Spring 무관 인터페이스(core) + Spring DI 구현(app) 분리 패턴 reference.
+
+## 변경
+
+- `core/src/main/java/com/truthscope/web/adapter/datasource/`:
+  - `DataSourceAdapter` interface (5 메서드)
+  - `AdapterQuery` / `RawResponse` / `ExtractedClaim` / `HealthStatus` / `AdapterMetadata` record
+- `app/src/main/java/com/truthscope/web/adapter/datasource/MockDataSourceAdapter.java` (@Component, fixture 5건)
+- `app/src/test/java/com/truthscope/web/adapter/datasource/MockDataSourceAdapterTest.java` (10 cases)
+
+## 검증
+
+- `./gradlew spotlessApply` PASS
+- `./gradlew checkstyleMain` PASS
+- `./gradlew spotbugsMain` PASS
+- `./gradlew test --tests "*MockDataSourceAdapter*"` PASS (10 cases)
+- `./gradlew test` 전체 회귀 PASS
+- `./gradlew build` PASS
+
+## Reference
+
+- 본 가이드: `docs/guides/backend-datasource-adapter.md` (PM scaffold reference)
+- ADR-006: core/app 분리 비전
+- 후속 어댑터(S3a/b BigKinds/KOSIS, S7 GDELT)가 본 인터페이스를 베이스로 작성됨
+
+## 학습 가치
+
+Spring 무관 인터페이스(core 모듈) + Spring DI 구현(app 모듈) 분리로 ADR-006 OCP/OSS 비전을 첫 어댑터로 실증. 후속 어댑터(BigKinds/KOSIS/GDELT)가 본 패턴을 그대로 따라간다.
+```
+
+PR 생성 후 ~5분 대기 → CI(`build-and-test`) + CodeRabbit 동시 진행. CodeRabbit이 Critical 0이면 PM에게 코멘트로 머지 승인 요청. 머지는 `--merge` 패턴 (PR #41/#42/#43 정합).
 
 ---
 
 ## 8. 수용 기준 매핑 (BE #22 issue 본문)
 
-| 수용 기준 | 본 가이드 매핑 |
+| 수용 기준 | 본 가이드 위치 |
 |---|---|
 | DataSourceAdapter 인터페이스 메서드 5+ 정의 | §3.1 (5개: fetch/parse/health/metadata/fixture) |
-| MockDataSourceAdapter 단위 테스트 PASS (5+ cases) | §5 (9 cases) |
-| ArchUnit 룰 PASS (entity setter 금지) | §6 (기존 룰 영향 없음) |
+| MockDataSourceAdapter 단위 테스트 PASS (5+ cases) | §5 (10 cases) |
+| ArchUnit 룰 PASS (entity setter 금지) | §6 (entity 룰 영향 없음) |
 | `./gradlew spotlessApply / checkstyleMain / spotbugsMain / test / build` 모두 PASS | §7 Step 5 |
-| PR description에 학습 가치 1줄 명시 | §7 Step 6 (위 예시) |
+| PR description에 학습 가치 1줄 명시 | §7 Step 6 PR body 마지막 섹션 |
 | CodeRabbit 리뷰 통과 (Critical 0) | §7 Step 6 후 |
 
 ---
@@ -592,11 +685,11 @@ CodeRabbit Critical 0이면 PM에게 코멘트로 머지 승인 요청.
 본 인터페이스가 베이스. 구현체별로 다음 부분만 변경:
 
 - `fetch`: 외부 API HTTP 호출 (Apache HttpClient 5 또는 Spring `RestClient`)
-- `parse`: source format별 파서 (Jackson `ObjectMapper` for JSON / `Jsoup` for HTML)
+- `parse`: source format별 파서 (Jackson `ObjectMapper` for JSON / `Jsoup` for HTML / SAX/StAX for XML)
 - `metadata`: 어댑터별 식별 정보 (BigKinds는 `isPaid=true`, GDELT는 `isPaid=false`)
 - `fixture`: 어댑터별 5+ 고정 응답
-- API 키: `application-local.yml` (Git 금지) → `@ConfigurationProperties` 또는 `@Value`
-- SsrfGuard 적용: 어댑터가 외부 URL을 fetch할 때 `SsrfGuard.validate(url)` 호출 의무 (Phase 20 룰)
+- API 키: `application-local.yml` (Git 금지 — `.gitignore` 정합) → `@ConfigurationProperties` 또는 `@Value`
+- **SsrfGuard 의무 호출**: 어댑터가 외부 URL을 fetch할 때 `SsrfGuard.validateAndResolve(url)` 호출. Phase 20에서 도입 (`.plans/20-ssrf-blocker/HANDOFF.md` + PR #37/#38/#39 → #40 머지). 사설 IP/내부망 fetch 차단
 
 > **신규 어댑터 PR 시 본 가이드를 reference로 인용**. 시그니처 변경은 본 가이드 patch + 모든 어댑터 일괄 갱신.
 
@@ -605,9 +698,8 @@ CodeRabbit Critical 0이면 PM에게 코멘트로 머지 승인 요청.
 ## 10. Reference
 
 - 이슈: <https://github.com/truthscope-smu/truthscope-web-backend/issues/22>
-- ADR: [ADR-006 core/app 분리](../../../context/decisions/ADR-006-core-app-separation.md)
-- DDD/TDD 패턴: [backend-ddd-tdd-template.md](backend-ddd-tdd-template.md)
-- 테스트 표준: [testing-standard.md](testing-standard.md)
-- 코드 reference: `core/src/main/java/com/truthscope/web/entity/Article.java` (정적 팩토리 패턴)
-- BE #23 Phase 1 머지: PR #41 (`64d019f`) — core/app 모듈 분리 직후 첫 어댑터
-- 워크스페이스 spike: `truthscope-web/spike/` (PM 로컬, 데이터 소스 정합성 측정 결과 박제)
+- ADR-006 (core/app 분리 비전): `truthscope-web/context/decisions/ADR-006-core-app-separation.md`
+- BE #23 머지 (core/app 분리 결과): PR #41 (`64d019f`) → PR #42 (`0b3958c`)
+- BE 컨벤션: `CLAUDE.md` (이 repo 루트) + `CONVENTIONS.md`
+- 테스트 표준: `docs/guides/testing-standard.md`
+- (선택) DDD/TDD 패턴: `docs/guides/backend-ddd-tdd-template.md` + `core/src/main/java/com/truthscope/web/entity/Article.java` — 본 어댑터는 entity가 아니라 직접 적용 안 되지만, 정적 팩토리 + invariant 검증 패턴 학습용
