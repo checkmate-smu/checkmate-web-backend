@@ -1,0 +1,117 @@
+name: Code Review Summary
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  collect-and-comment:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Write collector script
+        run: |
+          mkdir -p /tmp/cr
+          cat > /tmp/cr/collect.py << 'PYEOF'
+          import json
+          import os
+          import re
+          import subprocess
+          import sys
+
+          PR = int(os.environ["PR_NUMBER"])
+          REPO = os.environ["REPO"]
+
+          def gh(args):
+              return subprocess.check_output(["gh", *args], text=True, encoding="utf-8")
+
+          # --slurp combines all paginated JSON pages into one outer array
+          pages_raw = gh(["api", f"repos/{REPO}/pulls/{PR}/comments", "--paginate", "--slurp"])
+          comments = [c for page in json.loads(pages_raw) for c in page]
+
+          actionable = []
+          seen = set()
+          for c in comments:
+              login = (c.get("user") or {}).get("login", "")
+              if not login.startswith("coderabbitai"):
+                  continue
+              body = c.get("body") or ""
+              if not any(k in body for k in ["Potential issue", "Refactor", "Nitpick"]):
+                  continue
+              key = (c.get("path", ""), c.get("line"), body[:100])
+              if key in seen:
+                  continue
+              seen.add(key)
+              actionable.append(c)
+
+          if not actionable:
+              print("No actionable comments. Skipping.")
+              sys.exit(0)
+
+          def severity(body):
+              if "🔴" in body or "Critical" in body: return ("🔴 Critical", "critical")
+              if "🟠" in body or "Major" in body: return ("🟠 Major", "major")
+              if "🟡" in body or "Minor" in body: return ("🟡 Minor", "minor")
+              return ("🟢 Nitpick", "nitpick")
+
+          def title(body):
+              m = re.search(r"\*\*([^*]+)\*\*", body)
+              return m.group(1).strip().rstrip(".") if m else body[:60]
+
+          counts = {"critical":0, "major":0, "minor":0, "nitpick":0}
+          rows = []
+          for i, c in enumerate(actionable, 1):
+              sev_label, sev_key = severity(c["body"])
+              counts[sev_key] += 1
+              path = c.get("path", "")
+              line = c.get("line")
+              line_ref = f":{line}" if line else ""
+              rows.append(f"| {i} | {sev_label} | `{path}{line_ref}` | {title(c['body'])} |")
+
+          summary = (
+              f"## 📋 CodeRabbit Review Summary (PR #{PR})\n\n"
+              f"Critical: {counts['critical']} · Major: {counts['major']} · "
+              f"Minor: {counts['minor']} · Nitpick: {counts['nitpick']}\n\n"
+              f"| # | Severity | 파일 | 내용 |\n|---|---|---|---|\n"
+              + "\n".join(rows) + "\n\n"
+              f"<sub>로컬에서 `/collect-review {PR}` 실행 시 `docs/code-review-history/`에 상세 기록 저장됩니다.</sub>"
+          )
+
+          print(summary)
+          with open("/tmp/cr/summary.md", "w", encoding="utf-8") as f:
+              f.write(summary)
+          PYEOF
+
+      - name: Run collector
+        id: collector
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python /tmp/cr/collect.py
+          if [ -f /tmp/cr/summary.md ]; then
+            echo "summary_exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "summary_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Comment summary on PR
+        if: steps.collector.outputs.summary_exists == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --repo "$REPO" \
+            --body-file /tmp/cr/summary.md

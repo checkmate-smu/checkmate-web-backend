@@ -57,19 +57,20 @@ class ContentExtractServiceTest {
     }
 
     @Test
-    @DisplayName("8000자 초과 텍스트는 8000자로 잘림")
+    @DisplayName("8000자 초과 텍스트는 8000자로 잘림 + prefix 정합")
     void longTextTruncated() {
       String longText = "가".repeat(9000);
       String truncated = ArticleHtmlParser.truncate(longText);
       assertThat(truncated.length()).isEqualTo(8000);
+      assertThat(truncated).isEqualTo(longText.substring(0, 8000));
     }
 
     @Test
-    @DisplayName("정확히 8000자 텍스트는 그대로 반환")
+    @DisplayName("정확히 8000자 텍스트는 변경 없이 그대로 반환")
     void exactLimitTextNotTruncated() {
       String exactText = "b".repeat(8000);
       String result = ArticleHtmlParser.truncate(exactText);
-      assertThat(result.length()).isEqualTo(8000);
+      assertThat(result).isEqualTo(exactText);
     }
   }
 }
