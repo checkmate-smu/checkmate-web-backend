@@ -121,4 +121,38 @@ class ArchitectureTest {
           .haveNameStartingWith("set")
           .because(
               "Entity 변경은 비즈니스 메서드로만 허용 (DDD always-valid 모델). enum 패키지는 별도(..entity.enums..)이므로 영향 없음.");
+
+  // ── core 모듈 격리 (ADR-006 D1: OSS 단독 배포 가능성 강제) ──
+
+  @ArchTest
+  static final ArchRule corePackagesShouldNotDependOnAppLayer =
+      noClasses()
+          .that()
+          .resideInAnyPackage(
+              "..entity..", "..dto..", "..converter..", "..exception..", "..adapter..")
+          .should()
+          .dependOnClassesThat()
+          .resideInAnyPackage(
+              "..controller..",
+              "..service..",
+              "..repository..",
+              "..config..",
+              "..security..",
+              "..html..")
+          .allowEmptyShould(true)
+          .because(
+              "ADR-006: core 모듈(entity/dto/converter/exception/adapter)은 app 모듈(controller/service/repository/config/security/html)에 의존 금지. core가 OSS jar로 단독 배포 가능해야 함.");
+
+  // ── DTO record 강제 (CONVENTIONS: 요청 DTO는 record 타입) ──
+
+  @ArchTest
+  static final ArchRule requestDtoShouldBeRecord =
+      classes()
+          .that()
+          .resideInAPackage("..dto.request..")
+          .should()
+          .beRecords()
+          .allowEmptyShould(true)
+          .because(
+              "CONVENTIONS: 요청 DTO는 record 타입 (Java 17+) — immutable + 자동 equals/hashCode/toString.");
 }
