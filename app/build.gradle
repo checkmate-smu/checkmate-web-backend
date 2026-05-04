@@ -1,0 +1,30 @@
+// app 모듈 — Spring Boot 웹앱. core를 의존하며 Controller/Service/Repository/Config/Security 포함.
+plugins {
+	id 'org.springframework.boot'
+	id 'io.spring.dependency-management'
+}
+
+dependencies {
+	implementation project(':core')
+
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
+	implementation 'org.jsoup:jsoup:1.18.3'
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
+
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'org.postgresql:postgresql'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.0'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:postgresql'
+	testImplementation 'org.testcontainers:junit-jupiter'
+}
+
+// throwaway 연구 코드(spike)는 워크스페이스 레벨 `truthscope-web/spike/` 독립 Java 프로젝트로 분리됨 (2026-05-04).
+// 이전 `app/src/spike/` sourceSet 제거 — BE 빌드 파이프라인과 단절. 상세는 spike/README.md 및 BE CLAUDE.md.
