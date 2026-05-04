@@ -62,10 +62,5 @@ logs/
 .plans/
 context/
 
-# ===========================
-# Spike sourceSet (개인 로컬 전용 — throwaway 연구 코드)
-# ===========================
-# app/build.gradle 의 sourceSet 정의는 git tracked, 그러나 app/src/spike/ 콘텐츠는
-# 개인 로컬에서만 작업. 결과 공유는 옵시디언/Notion 또는 별 .plans/ 산출물.
-# 상세: CLAUDE.md ## spike sourceSet
-app/src/spike/
+# spike code(throwaway 연구)는 2026-05-04 워크스페이스 레벨 `truthscope-web/spike/`로 분리됨.
+# BE repo에서는 더 이상 추적/제외 대상이 아니다. 상세: spike/README.md.
