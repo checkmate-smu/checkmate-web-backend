@@ -61,9 +61,15 @@ class ArchitectureTest {
       classes()
           .that()
           .resideInAPackage("..service..")
+          .and()
+          .arePublic()
+          .and()
+          .areTopLevelClasses()
           .should()
           .haveSimpleNameEndingWith("Service")
-          .allowEmptyShould(true);
+          .allowEmptyShould(true)
+          .because(
+              "Service stereotype 네이밍은 public top-level 클래스에만 적용. inner record/handler/private utility는 구현 세부 사항으로 exempt.");
 
   @ArchTest
   static final ArchRule repositoryNaming =

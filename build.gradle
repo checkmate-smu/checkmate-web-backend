@@ -28,6 +28,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 	implementation 'org.jsoup:jsoup:1.18.3'
+	implementation 'org.apache.httpcomponents.client5:httpclient5'
 	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
@@ -46,6 +47,40 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+// ── Spike sourceSet (throwaway research code — 평소 build에서 제외) ──
+//
+// 위치: src/spike/java/, src/spike/resources/
+// 정책: Plain Java + JUnit 5 (Spring 의존 0). Spotless 적용 / Checkstyle·SpotBugs 비활성화.
+// 실행: ./gradlew spikeTest (명시 호출 시만, ./gradlew test에는 미포함)
+// 상세: docs/spike-source-set.md (또는 CLAUDE.md ## spike sourceSet)
+sourceSets {
+	spike {
+		java { srcDirs = ['src/spike/java'] }
+		resources { srcDirs = ['src/spike/resources'] }
+		compileClasspath += sourceSets.test.runtimeClasspath
+		runtimeClasspath += sourceSets.test.runtimeClasspath
+	}
+}
+
+configurations {
+	spikeImplementation.extendsFrom testImplementation
+	spikeRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+tasks.register('spikeTest', Test) {
+	description = 'Run spike research tests (data source accuracy 검증). 평소 build에서 제외.'
+	group = 'verification'
+	testClassesDirs = sourceSets.spike.output.classesDirs
+	classpath = sourceSets.spike.runtimeClasspath
+	useJUnitPlatform()
+	shouldRunAfter test
+}
+
+// spike sourceSet은 throwaway 연구 코드 — Checkstyle/SpotBugs 비활성화
+tasks.matching { it.name in ['checkstyleSpike', 'spotbugsSpike'] }.configureEach {
+	enabled = false
 }
 
 // ── Spotless (코드 포맷) ──
